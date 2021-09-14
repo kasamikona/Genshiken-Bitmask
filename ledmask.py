@@ -3,6 +3,7 @@ from bleak import BleakScanner, BleakClient
 from displays import DisplayDSD
 from bleak.exc import BleakError
 import System
+import time, math
 
 display = None
 
@@ -32,7 +33,6 @@ async def run():
         if not device:
             print("No device found")
             return
-        
         print("Found %s (%s), connecting" % (device.name, device.address))
         async with BleakClient(device.address) as client:
             print("Connected")
@@ -41,21 +41,32 @@ async def run():
     except (BleakError, System.Exception) as err:
         print(err)
         print("\n=========================================================================\n")
-        print("General Bluetooth error, is your adapter connected and enabled?")
+        print("General Bluetooth error, is your adapter connected and enabled? Is the device charged?")
 
 async def sendtest(client):
-    print("mtu", client.mtu_size)
-    for cx in range(display.width):
-        print("sendtest frame", cx)
-        rsq = ((display.height-1)/2)**2
+    test_frames = 200
+    sync_interval = 100
+    
+    start_time = time.time()
+    radius = (display.height)/4
+    rsq = radius**2
+    for fn in range(test_frames):
+        cx = (fn/3) % display.width
+        cy = display.height - radius - (display.height - 2*radius) * abs(math.sin(fn/3))
         for i in range(display.width):
             for j in range(display.height):
                 dx = i - cx
-                dy = j - display.height//2
+                dy = j - cy
                 dsq = dx**2 + dy**2
                 display.buffer[i][j] = 1 if dsq <= rsq else 0
-        await display.send(client)
+        if (fn%10)==0:
+            print("Generated frame", fn)
+        await display.send(client, (fn%sync_interval)==0)
+    await display.wait_for_finish(client)
 
+    time_taken = time.time() - start_time
+    print("Displayed %s frames in %s seconds, syncing every %s frames" % (test_frames, time_taken, sync_interval))
+    print("Measured fps", test_frames / time_taken)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(run())

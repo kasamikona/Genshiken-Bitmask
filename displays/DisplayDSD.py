@@ -25,14 +25,15 @@ def pad(packet):
 class DisplayDSD(DisplayBase):
     @staticmethod
     def match_device(device):
-        # Device 01:23:45:67:89:AB is always named as DSD-6789AB
-        return device.name == ("DSD-" + device.address.replace(":","").upper()[-6:])
+        # Device 01:23:45:67:89:AB is (sometimes?) named as DSD-6789AB, can change to proj_template (after pairing?)
+        return device.name == ("DSD-" + device.address.replace(":","").upper()[-6:]) or device.name == "proj_template"
 
     def __init__(self):
         self.width = 48
         self.height = 12
         self.color = False
         self.bit_depth = 1
+        self.max_fps = 7.9 # Measured up to 8.0 fps
         super().generate_buffer()
 
     def reverse_map_bit(self, bit):
@@ -48,12 +49,13 @@ class DisplayDSD(DisplayBase):
         packet += length.to_bytes(2,'big')
         packet += b'\x00\x00'
         await client.write_gatt_char(CHAR_CMD, encrypt(pad(packet)))
-        #await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK
+        await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK
 
-    async def write_data_end(self, client):
-        await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')), response=True)
-        #await asyncio.sleep(0.01) # Hack because I cba to wait for DATCPOK
-        await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')))
+    async def write_data_end(self, client, wait_response):
+        await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')))
+        await asyncio.sleep(0.01) # Hack because I cba to wait for DATCPOK
+        await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=wait_response)
+        await asyncio.sleep(0.01)
 
     async def write_more_data(self, client, data):
         write_amount = min(len(data), 15)
@@ -61,3 +63,6 @@ class DisplayDSD(DisplayBase):
         packet += data[:write_amount]
         await client.write_gatt_char(CHAR_DAT, encrypt(pad(packet)))
         return write_amount
+
+    async def wait_for_finish(self, client):
+        await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=True) # Good enough
