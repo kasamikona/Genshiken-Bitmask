@@ -1,78 +1,81 @@
 import asyncio
 from bleak import BleakScanner, BleakClient
-from displays import DisplayDSD
 from bleak.exc import BleakError
-import System
-import time, math
+import displays
 
 GET_RESPOSNES = False
+SCAN_SECONDS = 2 # 2 seconds should be long enough
+AUTO_SCAN_CLASSES = [ # Update as new displays are added
+    displays.DisplayDSD
+]
 
+client = None
 display = None
 
-async def get_device():
-    global display
-    dev = None
+async def get_device(displayClasses=None):
+    bt_device = None
     display = None
+
     async with BleakScanner() as scanner:
-        await asyncio.sleep(2) # 2 seconds should be long enough
+        await asyncio.sleep(SCAN_SECONDS) 
         for d in scanner.discovered_devices:
-            if check_setup_device(d):
-                dev = d
+            display = check_setup_display(d, displayClasses)
+            if display:
+                bt_device = d
                 break
-    return dev
 
-def check_setup_device(device):
-    global display, cipher
-    if DisplayDSD.match_device(device):
-        display = DisplayDSD()
-        return True
-    return False
+    return (bt_device, display)
 
-async def run():
+def check_setup_display(bt_device, displayClasses=None):
+    if not displayClasses:
+        displayClasses = AUTO_SCAN_CLASSES
+
+    for displayClass in displayClasses:
+        if displayClass.match_device(bt_device):
+            return displayClass()
+
+    return None
+
+async def connect(displayClasses=None):
+    global client, display
+    if client:
+        print("Already connected")
+        return False
+    
+    error_suffix = "Is the BLE adapter connected and enabled? Is the display charged and switched on?"
     try:
-        print("Looking for compatible device")
-        device = await get_device()
-        if not device:
-            print("No device found")
-            return
-        print("Found %s (%s), connecting" % (device.name, device.address))
-        async with BleakClient(device.address) as client:
-            print("Connected")
-            if GET_RESPOSNES:
-                await display.start_notify_ack(client)
-            await sendtest(client)
-            if GET_RESPOSNES:
-                display.stop_notify_ack(client)
-        print("Disconnected")
+        print("Looking for compatible display")
+        bt_device, display = await get_device(displayClasses)
+
+        if not display:
+            print("No display found.", error_suffix)
+            return False
+
+        print("Found %s (%s), using display class %s..." % (bt_device.name, bt_device.address, type(display).__name__))
+        client = BleakClient(bt_device.address)
+        await client.connect()
+
+        if GET_RESPOSNES:
+            await display.start_notify_ack(client)
+
+        print("Connected")
+        return True
+
     except (BleakError, System.Exception) as err:
         print(err)
-        print("\n=========================================================================\n")
-        print("General Bluetooth error, is your adapter connected and enabled? Is the device charged?")
+        print("\nConnection error.", error_suffix)
+        return False
 
-async def sendtest(client):
-    test_frames = 100
-    sync_interval = 100
-    
-    start_time = time.time()
-    radius = (display.height)/4
-    rsq = radius**2
-    for fn in range(test_frames):
-        cx = (fn/3) % display.width
-        cy = display.height - radius - (display.height - 2*radius) * abs(math.sin(fn/3))
-        for i in range(display.width):
-            for j in range(display.height):
-                dx = i - cx
-                dy = j - cy
-                dsq = dx**2 + dy**2
-                display.buffer[i][j] = 1 if dsq <= rsq else 0
-        if (fn%10)==0:
-            print("Generated frame", fn)
-        await display.send(client, (fn%sync_interval)==0)
-    await display.wait_for_finish(client)
+async def disconnect():
+    global client, display
 
-    time_taken = time.time() - start_time
-    print("Displayed %s frames in %s seconds, syncing every %s frames" % (test_frames, time_taken, sync_interval))
-    print("Measured fps", test_frames / time_taken)
+    if not client:
+        return
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(run())
+    if GET_RESPOSNES:
+        await display.stop_notify_ack(client)
+
+    await client.disconnect()
+    client = None
+    display = None
+    print("Disconnected")
