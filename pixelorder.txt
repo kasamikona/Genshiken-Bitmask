@@ -1,0 +1,17 @@
+DSD:
+bits aaaabbbb ccccdddd eeeeffff ... maps as
+a e g k
+a e g k . . .
+a e g k
+a e g k
+b f h l . . .
+b f h l
+b f h l
+b f h l . . .
+c d i j
+c d i j
+c d i j . . .
+c d i j
+
+EMing:
+TODO
