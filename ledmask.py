@@ -5,6 +5,8 @@ from bleak.exc import BleakError
 import System
 import time, math
 
+GET_RESPOSNES = False
+
 display = None
 
 async def get_device():
@@ -36,7 +38,11 @@ async def run():
         print("Found %s (%s), connecting" % (device.name, device.address))
         async with BleakClient(device.address) as client:
             print("Connected")
+            if GET_RESPOSNES:
+                await display.start_notify_ack(client)
             await sendtest(client)
+            if GET_RESPOSNES:
+                display.stop_notify_ack(client)
         print("Disconnected")
     except (BleakError, System.Exception) as err:
         print(err)
@@ -44,7 +50,7 @@ async def run():
         print("General Bluetooth error, is your adapter connected and enabled? Is the device charged?")
 
 async def sendtest(client):
-    test_frames = 1000
+    test_frames = 100
     sync_interval = 100
     
     start_time = time.time()

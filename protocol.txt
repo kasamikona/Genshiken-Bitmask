@@ -1,0 +1,129 @@
+================================================================================
+This protocol is reverse-engineered from BLE packets and may be very incomplete.
+================================================================================
+
+genshiken (ksk, stg7) 2021
+
+================================ Communication =================================
+Device has 4 BLE/GATT characteristics:
+    d44bc439-abfd-45a2-b575-925416129600 = Command
+    d44bc439-abfd-45a2-b575-925416129601 = Response
+    d44bc439-abfd-45a2-b575-92541612960a = Pixel data
+    d44bc439-abfd-45a2-b575-92541612960b = Music playback data?
+
+Packets must be encrypted with AES-128-ECB and sent as individual 128-bit GATT
+packets.
+
+================================ Known devices =================================
+DSD face mask / hat (tiro magic display?):
+    Key = 34522a5b7a6e492c08090a9d8d2a23f8
+        Dumped from libAES.so by ksk
+    Resolution = 48x12 (PAR 1:1)
+    Color = 1bit monochrome (varying arrangements of different monochrome LEDs)
+    Max FPS normal operation without sync = ~8.0
+    Max FPS with speed hacks = ~10.5 (DATS length param = 0, no DATCP)
+    Device name =
+        "DSD-" + last 6 hex digits of MAC
+        "proj_template" sometimes (after pairing?)
+
+EMing LED face mask:
+    Key = 32672f7974ad43451d9c6c894a0e8764
+        Dumped by mjg59: twitter.com/mjg59/status/1402506069658673152
+    Resolution = 36x12 (PAR 3:4, effective 36x16)
+    Color = RGB (TODO find bit depth/order)
+    TODO measure FPS
+    TODO find device names
+
+================================ Message format ================================
+First byte is total message length in bytes, up to 15.
+
+Next 1 to 15 bytes are message name in uppercase ASCII, followed by parameters.
+Multi byte numerical parameters appear to be big-endian.
+
+Remaining bytes may be padded with zeros or garbage.
+
+Commands are sent to *600 characteristic, and responses in the may be received
+from *601 for some commands. Both commands and responses use the same format.
+
+================================ Known messages ================================
+DATS:
+    Type: command
+    Function:
+        Data start/send. Device will respond with DATSOK when ready to accept
+        pixel data.
+    Message length: 8
+    Parameters:
+        [uint16] length:
+            Number of bytes about to be sent. Used only by DATCP to verify
+            correct amount of data received.
+        [2b] unknown: Unknown usage, display freezes if 0x0001?
+
+DATCP:
+    Type: command
+    Function:
+        Data complete. Will respond with DATCPOK if correct number of bytes
+        were received, otherwise responds with ERROR(00?). Appears to have no
+        effect on display functionality whether successful or not.
+    Message length: 5
+    Parameters: none
+
+MODE:
+    Type: command
+    Function: Display last received data and set display animation mode.
+    Message length: 5
+    Parameters:
+        [uint8] mode: Animation mode enum.
+            STATIC = 0x01
+            TODO find other mode values
+
+LIGHT:
+    Type: command
+    Function:
+        Set display brightness. No effect on displays without brightness
+        control hardware.
+    Message length: 6
+    Parameters:
+        [uint8] light: Brightness value as a percentage (0-100 valid).
+
+SPEED:
+    Type: command
+    Function:
+        Set speed of animations. No effect for STATIC mode. Appears to have no
+        effect for BLINK mode either.
+    Message length: 6
+    Parameters:
+        [uint8] speed: Speed value as a percentage (0-100 valid).
+
+LEDON:
+    Type: command
+    Function: Enable display LEDs.
+    Message length: 5
+    Parameters: none
+
+LEDOFF (assumed):
+    Type: command
+    Function: Disable display LEDs.
+    Message length: 6 (assumed)
+    Parameters: none
+
+DATSOK:
+    Type: response
+    Function: Confirm ready to receive pixel data.
+    Message length: 7
+    Parameters:
+        [1B] unknown: Unknown usage, always observed as 0x00.
+
+DATCPOK:
+    Type: response
+    Function: Confirm correct amount of data receive
+    Message length: 7
+    Parameters: none
+
+ERROR:
+    Type: response
+    Function: Notify error in last command, e.g. wrong amount of data received.
+    Message length: 7
+    Parameters:
+        [2B] errcode: Printable error code (hex digits?) as ASCII.
+
+================================================================================

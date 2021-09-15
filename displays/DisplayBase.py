@@ -64,3 +64,9 @@ class DisplayBase():
 
     async def wait_for_finish(self, client):
         pass
+
+    async def start_notify_ack(self, client):
+        pass
+
+    async def stop_notify_ack(self, client):
+        pass
