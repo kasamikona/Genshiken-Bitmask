@@ -33,7 +33,7 @@ class DisplayDSD(DisplayBase):
         self.height = 12
         self.color = False
         self.bit_depth = 1
-        self.max_fps = 7.9 # Measured up to 8.0 fps
+        self.max_fps = 9 # Measured up to 9.3 fps (with clearskip hax)
         super().generate_buffer()
 
     def reverse_map_bit(self, bit):
@@ -46,7 +46,8 @@ class DisplayDSD(DisplayBase):
 
     async def write_data_start(self, client, length):
         packet = b'\x08DATS'
-        packet += length.to_bytes(2,'big')
+        #packet += length.to_bytes(2,'big')
+        packet += b'\x00\x00' # clearskip gamer ultra hax fps++
         packet += b'\x00\x00'
         await client.write_gatt_char(CHAR_CMD, encrypt(pad(packet)))
         await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK

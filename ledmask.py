@@ -44,7 +44,7 @@ async def run():
         print("General Bluetooth error, is your adapter connected and enabled? Is the device charged?")
 
 async def sendtest(client):
-    test_frames = 200
+    test_frames = 1000
     sync_interval = 100
     
     start_time = time.time()
