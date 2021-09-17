@@ -62,8 +62,10 @@ DATCP:
 	Type: command
 	Function:
 		Data complete. Will respond with DATCPOK if correct number of bytes
-		were received, otherwise responds with ERROR(00?). Appears to have no
-		effect on display functionality whether successful or not.
+		were received, otherwise responds with ERROR(00?). Computes and stores
+		scroll length if successful. Appears to have no other effect on display
+		functionality whether successful or not (i.e. the data will be
+		displayed anyway).
 	Message length: 5
 	Parameters: none
 

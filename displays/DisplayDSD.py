@@ -13,17 +13,17 @@ cipher = AES.new(bytes.fromhex(AES_KEY), AES.MODE_ECB)
 
 def encrypt(packet):
 	enc = cipher.encrypt(packet)
-	#print("Encrypted %s to %s" % (packet.hex(), enc.hex()))
 	return enc
 
 def decrypt(packet):
 	dec = cipher.decrypt(packet)
-	#print("Decrypted %s to %s" % (packet.hex(), dec.hex()))
 	return dec
 
 def pad(packet):
-	padlen = ((len(packet)-1)&16) + 16
-	return (packet + b'\x00'*padlen)[:padlen]
+	if len(packet) > 16:
+		print("Packet", packet, "too long")
+		return packet
+	return (packet + b'\x00'*16)[:16]
 
 def ack_handler(sender, data):
 	print("Response:", decrypt(data))
@@ -50,27 +50,32 @@ class DisplayDSD(Display):
 		c = 0
 		return (x, y, c)
 
+	async def clear_start(self, client):
+		for x in range(self.width):
+			for y in range(self.height):
+				self.buffer[x][y] = 0
+		await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05LEDON')), response=True) # Ensure leds on
+		await self.send(client, True)
+		if USE_HAX:
+			# Later frames won't DATCP so do it now to set correct scroll length
+			await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')), response=True)
+		# await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=True)
+
 	async def write_data_start(self, client, length):
-		packet = b'\x08DATS'
-		if USE_HAX: # fps++
-			packet += b'\x00\x00' 
-		else:
-			packet += length.to_bytes(2,'big')
-		packet += b'\x00\x00'
+		packet = b'\x08DATS' + length.to_bytes(2,'big') + b'\x00\x00'
 		await client.write_gatt_char(CHAR_CMD, encrypt(pad(packet)))
-		await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK
+		#await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK
 
 	async def write_data_end(self, client, wait_response):
 		if not USE_HAX: # else fps++
 			await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')))
-			await asyncio.sleep(0.01) # Hack because I cba to wait for DATCPOK
+			#await asyncio.sleep(0.01) # Hack because I cba to wait for DATCPOK
 		await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=wait_response)
-		await asyncio.sleep(0.01)
+		#await asyncio.sleep(0.01)
 
 	async def write_more_data(self, client, data):
 		write_amount = min(len(data), 15)
-		packet = write_amount.to_bytes(1,'big')
-		packet += data[:write_amount]
+		packet = write_amount.to_bytes(1,'big') + data[:write_amount]
 		await client.write_gatt_char(CHAR_DAT, encrypt(pad(packet)))
 		return write_amount
 

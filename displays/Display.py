@@ -45,6 +45,9 @@ class Display():
 			out_bytes[i] = bv
 		return out_bytes
 
+	async def clear_start(self, client):
+		pass
+
 	async def send(self, client, wait_response):
 		out_bytes = self.get_output_bytes()
 		await self.write_data_start(client, len(out_bytes))
