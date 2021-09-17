@@ -1,0 +1,2 @@
+#!/bin/bash
+echo "$1" | xxd -p -r | openssl enc -d -aes-128-ecb -nopad -K "34522a5b7a6e492c08090a9d8d2a23f8" -out - | xxd
