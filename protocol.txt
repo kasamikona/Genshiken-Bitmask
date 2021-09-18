@@ -25,6 +25,7 @@ DSD face mask / hat (tiro magic display?):
 	Device name =
 		"DSD-" + last 6 hex digits of MAC
 		"proj_template" sometimes (after pairing?)
+	Battery: 650mAh @ 5.1V 0.1A, full charge 6.5 hours
 
 EMing LED face mask:
 	Key = 32672f7974ad43451d9c6c894a0e8764
@@ -33,6 +34,7 @@ EMing LED face mask:
 	Color = RGB (TODO find bit depth/order)
 	TODO measure FPS
 	TODO find device names
+	Battery: ?mAh @ 5.1V 0.9A, full charge ? hours
 
 ================================ Message format ================================
 First byte is total message length in bytes, up to 15.

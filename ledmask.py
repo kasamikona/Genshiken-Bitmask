@@ -57,7 +57,7 @@ async def connect(displayClasses=None):
 
 		if GET_RESPOSNES:
 			await display.start_notify_ack(client)
-		await display.clear_start(client)
+		await display.prepare(client)
 
 		print("Connected")
 		return True

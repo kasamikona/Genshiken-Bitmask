@@ -35,6 +35,7 @@ class DisplayDSD(Display):
 		return device.name == ("DSD-" + device.address.replace(":","").upper()[-6:]) or device.name == "proj_template"
 
 	def __init__(self):
+		super().__init__()
 		self.width = 48
 		self.height = 12
 		self.color = False
@@ -50,7 +51,7 @@ class DisplayDSD(Display):
 		c = 0
 		return (x, y, c)
 
-	async def clear_start(self, client):
+	async def prepare(self, client):
 		for x in range(self.width):
 			for y in range(self.height):
 				self.buffer[x][y] = 0
@@ -59,7 +60,7 @@ class DisplayDSD(Display):
 		if USE_HAX:
 			# Later frames won't DATCP so do it now to set correct scroll length
 			await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')), response=True)
-		# await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=True)
+		await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=True)
 
 	async def write_data_start(self, client, length):
 		packet = b'\x08DATS' + length.to_bytes(2,'big') + b'\x00\x00'
