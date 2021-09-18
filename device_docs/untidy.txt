@@ -1,0 +1,9 @@
+EMing LED face mask:
+	Key: 32672f7974ad43451d9c6c894a0e8764
+		Dumped by mjg59: twitter.com/mjg59/status/1402506069658673152
+		MIGHT BE WRONG KEY
+	Resolution: 36x12 (PAR 3:4, effective 36x16)
+	Color: RGB (TODO find bit depth/order)
+	TODO measure FPS
+	TODO find BLE names
+	Battery: 750mAh @ 5.1V 0.8A (full charge 1 hour)

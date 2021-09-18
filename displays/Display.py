@@ -53,7 +53,7 @@ class Display():
 			for y in range(self.height):
 				self.buffer[x][y] = 0
 		if send:
-			self.send(client, wait_response)
+			await self.send(client, wait_response)
 
 	async def send(self, client, wait_response=False):
 		out_bytes = self.get_output_bytes()
