@@ -6,7 +6,8 @@ import displays
 GET_RESPOSNES = False
 SCAN_SECONDS = 2 # 2 seconds should be long enough
 AUTO_SCAN_CLASSES = [ # Update as new displays are added
-	displays.DisplayDSD
+	displays.DisplayDSD,
+	displays.DisplayEMingLED
 ]
 
 client = None
