@@ -2,6 +2,11 @@ import ledmask as ledmask
 import asyncio
 import displays
 
+USE_CLASSES = [
+	displays.DisplayDSD,
+	displays.DisplayVirtualDSD
+]
+
 async def all_on(display):
 	for i in range(display.width):
 		for j in range(display.height):
@@ -10,7 +15,7 @@ async def all_on(display):
 	print("Enjoy your battery drain")
 
 async def run():
-	display = await ledmask.find_and_connect(classes=[displays.DisplayDSD])
+	display = await ledmask.find_and_connect(classes=USE_CLASSES)
 	if not display:
 		return
 	await all_on(display)

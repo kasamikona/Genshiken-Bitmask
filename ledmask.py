@@ -5,17 +5,13 @@ import displays
 AUTO_SCAN_CLASSES = [
 	displays.DisplayDSD
 ]
-VIRTUAL_CLASSES = [
-	displays.DisplayVirtualDSD
-]
 
-async def find_and_connect(addresses=None, classes=None, allow_virtual=False):
+async def find_and_connect(addresses=None, classes=None):
 	print("Looking for compatible display")
 
 	if not classes:
+		print("No classes specified, using auto-scan list")
 		classes = AUTO_SCAN_CLASSES
-		if allow_virtual:
-			classes = classes + VIRTUAL_CLASSES
 
 	display = None
 	for cls in classes:

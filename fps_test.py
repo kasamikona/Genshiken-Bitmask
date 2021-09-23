@@ -2,6 +2,11 @@ import ledmask as ledmask
 import asyncio, time, math
 import displays
 
+USE_CLASSES = [
+	displays.DisplayDSD,
+	displays.DisplayVirtualDSD
+]
+
 async def fps_test(display):
 	test_frames = 1000
 	sync_interval = 100
@@ -36,7 +41,7 @@ async def fps_test(display):
 	print("Measured fps", test_frames / time_taken)
 
 async def run():
-	display = await ledmask.find_and_connect(allow_virtual=True)
+	display = await ledmask.find_and_connect(classes=USE_CLASSES)
 	if not display:
 		return
 	await fps_test(display)
