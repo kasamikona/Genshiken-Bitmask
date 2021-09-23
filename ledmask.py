@@ -1,15 +1,21 @@
 import asyncio
 import displays
 
-AUTO_SCAN_CLASSES = [ # Update as new displays are added
+# Update as new displays are added
+AUTO_SCAN_CLASSES = [
 	displays.DisplayDSD
 ]
+VIRTUAL_CLASSES = [
+	displays.DisplayVirtualDSD
+]
 
-async def find_and_connect(classes=None, addresses=None):
+async def find_and_connect(addresses=None, classes=None, allow_virtual=False):
 	print("Looking for compatible display")
 
 	if not classes:
 		classes = AUTO_SCAN_CLASSES
+		if allow_virtual:
+			classes = classes + VIRTUAL_CLASSES
 
 	display = None
 	for cls in classes:
