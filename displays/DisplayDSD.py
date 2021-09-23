@@ -1,8 +1,11 @@
 from .Display import Display
 import asyncio
 from Crypto.Cipher import AES
+from bleak import BleakScanner, BleakClient
+from bleak.exc import BleakError
 
 USE_HAX = True
+GET_RESPONSES = False
 
 CHAR_CMD = "d44bc439-abfd-45a2-b575-925416129600"
 CHAR_ACK = "d44bc439-abfd-45a2-b575-925416129601"
@@ -25,16 +28,67 @@ def pad(packet):
 		return packet
 	return (packet + b'\x00'*16)[:16]
 
+def match_ble_device(device):
+	# Device 01:23:45:67:89:AB is (sometimes?) named as DSD-6789AB, can change to proj_template (after pairing?)
+	return device.name == ("DSD-" + device.address.replace(":","").upper()[-6:]) or device.name == "proj_template"
+
 def ack_handler(sender, data):
 	print("Response:", decrypt(data))
 
 class DisplayDSD(Display):
-	@staticmethod
-	def match_device(device):
-		# Device 01:23:45:67:89:AB is (sometimes?) named as DSD-6789AB, can change to proj_template (after pairing?)
-		return device.name == ("DSD-" + device.address.replace(":","").upper()[-6:]) or device.name == "proj_template"
+	@classmethod
+	async def connect(cls, addresses=None):
+		if not addresses:
+			addresses = []
+		filter_addresses = len(addresses) > 0
+		
+		address = None
+		async with BleakScanner() as scanner:
+			await asyncio.sleep(2) # 2 seconds should be long enough
+			for d in scanner.discovered_devices:
+				if filter_addresses and d.address not in addresses:
+					break
+				if match_ble_device(d):
+					print("Found %s (%s)" % (d.name, d.address, ))
+					address = d.address
+					break
 
-	def __init__(self):
+		if not address:
+			return None
+
+		try:
+			client = BleakClient(address)
+			if not await client.connect():
+				return None
+
+			disp = cls(client)
+			client.set_disconnected_callback(disp._disconnect_unexpected)
+			if GET_RESPONSES:
+				await disp.start_notify_ack(client)
+			await disp.prepare()
+
+			print("Connected to %s" % (address))
+			return disp
+		except BleakError:
+			return None
+
+	async def disconnect(self):
+		if not self.is_connected:
+			return
+
+		if GET_RESPONSES:
+			await display.stop_notify_ack(self.client)
+		await self.client.disconnect()
+
+		self.is_connected = False
+		print("Disconnected")
+
+	def _disconnect_unexpected(self, cbclient=None):
+		if self.is_connected:
+			self.is_connected = False
+			print("Disconnected unexpectedly")
+
+	def __init__(self, client=None):
 		super().__init__()
 		self.width = 48
 		self.height = 12
@@ -42,6 +96,8 @@ class DisplayDSD(Display):
 		self.bit_depth = 1
 		self.max_fps = 10 if USE_HAX else 7.5 # Measured up to 10.5 fps with hax, 8.0 without
 		super().generate_buffer()
+		self.client = client
+		self.is_connected = True
 
 	def reverse_map_bit(self, bit):
 		x = bit // 12
@@ -51,40 +107,70 @@ class DisplayDSD(Display):
 		c = 0
 		return (x, y, c)
 
-	async def prepare(self, client):
-		for x in range(self.width):
-			for y in range(self.height):
-				self.buffer[x][y] = 0
-		await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05LEDON')), response=True) # Ensure leds on
-		await self.send(client, True)
-		if USE_HAX:
-			# Later frames won't DATCP so do it now to set correct scroll length
-			await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')), response=True)
-		await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=True)
+	async def prepare(self):
+		try:
+			for x in range(self.width):
+				for y in range(self.height):
+					self.buffer[x][y] = 0
 
-	async def write_data_start(self, client, length):
-		packet = b'\x08DATS' + length.to_bytes(2,'big') + b'\x00\x00'
-		await client.write_gatt_char(CHAR_CMD, encrypt(pad(packet)))
-		#await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK
+			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05LEDON')), response=True) # Ensure leds on
+			await self.send(True)
 
-	async def write_data_end(self, client, wait_response):
-		if not USE_HAX: # else fps++
-			await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')))
-			#await asyncio.sleep(0.01) # Hack because I cba to wait for DATCPOK
-		await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=wait_response)
-		#await asyncio.sleep(0.01)
+			if USE_HAX:
+				# Later frames won't DATCP so do it now to set correct scroll length
+				await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')), response=True)
 
-	async def write_more_data(self, client, data):
+			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=True)
+		except BleakError:
+			self._disconnect_unexpected()
+
+	async def send(self, wait_response=False):
+		try:
+			await super().send(wait_response)
+		except BleakError:
+			self._disconnect_unexpected()
+
+	async def write_data_start(self, length):
+		try:
+			packet = b'\x08DATS' + length.to_bytes(2,'big') + b'\x00\x00'
+			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(packet)))
+			#await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK
+		except BleakError:
+			self._disconnect_unexpected()
+
+	async def write_data_end(self, wait_response):
+		try:
+			if not USE_HAX:
+				await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')))
+				#await asyncio.sleep(0.01) # Hack because I cba to wait for DATCPOK
+			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=wait_response)
+			#await asyncio.sleep(0.01)
+		except BleakError:
+			self._disconnect_unexpected()
+
+	async def write_more_data(self, data):
 		write_amount = min(len(data), 15)
-		packet = write_amount.to_bytes(1,'big') + data[:write_amount]
-		await client.write_gatt_char(CHAR_DAT, encrypt(pad(packet)))
+		try:
+			packet = write_amount.to_bytes(1,'big') + data[:write_amount]
+			await self.client.write_gatt_char(CHAR_DAT, encrypt(pad(packet)))
+		except BleakError:
+			self._disconnect_unexpected()
 		return write_amount
 
-	async def wait_for_finish(self, client):
-		await client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05LEDON')), response=True) # Good enough
+	async def wait_for_finish(self):
+		try:
+			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05LEDON')), response=True) # Good enough
+		except BleakError:
+			self._disconnect_unexpected()
 
-	async def start_notify_ack(self, client):
-		await client.start_notify(CHAR_ACK, ack_handler)
+	async def start_notify_ack(self):
+		try:
+			await self.client.start_notify(CHAR_ACK, ack_handler)
+		except BleakError:
+			self._disconnect_unexpected()
 
-	async def stop_notify_ack(self, client):
-		await client.stop_notify(CHAR_ACK)
+	async def stop_notify_ack(self):
+		try:
+			await self.client.stop_notify(CHAR_ACK)
+		except BleakError:
+			self._disconnect_unexpected()

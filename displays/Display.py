@@ -1,10 +1,18 @@
 import asyncio
 
 class Display():
-	@staticmethod
-	def match_device(device):
-		'''Returns boolean: Whether this is a valid display type for a given Bleak device.'''
-		return False
+	@classmethod
+	async def connect(cls, addresses=None):
+		'''
+		Attempts to connect to an appropriate device.
+		May be given specific addresses to check.
+		Returns object: New instance of this display if connected, otherwise None.
+		'''
+		return None
+
+	async def disconnect(self):
+		'''Disconnects the connected device'''
+		pass
 
 	def __init__(self):
 		self.width = 0
@@ -14,6 +22,7 @@ class Display():
 		self.buffer = None # Pixel buffer
 		self.bit_remap = None # Reverse map output bits into pixel buffer
 		self.max_fps = 0 # Max frame rate the display/connection can handle, should be slightly below measured maximum
+		self.is_connected = False
 
 	def reverse_map_bit(self, bit):
 		'''
@@ -45,38 +54,38 @@ class Display():
 			out_bytes[i] = bv
 		return out_bytes
 
-	async def prepare(self, client):
+	async def prepare(self):
 		pass
 
-	async def clear(self, client, send=True, wait_response=False):
+	async def clear(self, send=True, wait_response=False):
 		for x in range(self.width):
 			for y in range(self.height):
 				self.buffer[x][y] = 0
 		if send:
-			await self.send(client, wait_response)
+			await self.send(wait_response)
 
-	async def send(self, client, wait_response=False):
+	async def send(self, wait_response=False):
 		out_bytes = self.get_output_bytes()
-		await self.write_data_start(client, len(out_bytes))
+		await self.write_data_start(len(out_bytes))
 		while len(out_bytes) > 0:
-			num_written_bytes = await self.write_more_data(client, out_bytes)
+			num_written_bytes = await self.write_more_data(out_bytes)
 			out_bytes = out_bytes[num_written_bytes:]
-		await self.write_data_end(client, wait_response)
+		await self.write_data_end(wait_response)
 
-	async def write_data_start(self, client, length):
+	async def write_data_start(self, length):
 		pass
 
-	async def write_data_end(self, client, wait_response):
+	async def write_data_end(self, wait_response):
 		pass
 
-	async def write_more_data(self, client, data):
+	async def write_more_data(self, data):
 		return 1
 
-	async def wait_for_finish(self, client):
+	async def wait_for_finish(self):
 		pass
 
-	async def start_notify_ack(self, client):
+	async def start_notify_ack(self):
 		pass
 
-	async def stop_notify_ack(self, client):
+	async def stop_notify_ack(self):
 		pass
