@@ -52,6 +52,8 @@ class DisplayVirtualDSD(Display):
 				self.buffer[x][y] = 0
 
 	async def send(self, wait_response=False):
+		if not self.is_connected:
+			return
 		self.pg_screen.fill((10,10,10) if USE_LED_COLORS else (0,0,0))
 		for x in range(self.width):
 			for y in range(self.height):
