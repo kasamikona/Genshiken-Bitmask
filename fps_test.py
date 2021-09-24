@@ -8,7 +8,7 @@ USE_CLASSES = [
 ]
 
 async def fps_test(display):
-	test_frames = 1000
+	test_frames = 100
 	sync_interval = 100
 
 	start_time = time.time()

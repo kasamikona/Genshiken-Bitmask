@@ -26,19 +26,13 @@ class Display():
 	async def prepare(self):
 		pass
 
-	async def clear(self, send=True, wait_response=False):
-		for x in range(self.width):
-			for y in range(self.height):
-				self.buffer[x][y] = 0
-		if send:
-			await self.send(wait_response)
-
 	async def send(self, wait_response=False):
 		pass
 
 	async def wait_for_finish(self):
 		pass
 
-	def send_async(self):
-		loop = asyncio.get_event_loop()
-		loop.create_task(self.send())
+	def clear(self):
+		for x in range(self.width):
+			for y in range(self.height):
+				self.buffer[x][y] = 0

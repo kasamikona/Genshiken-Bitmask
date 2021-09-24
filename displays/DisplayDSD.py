@@ -121,6 +121,7 @@ class DisplayDSD(Display):
 				await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')), response=True)
 
 			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=True)
+			await asyncio.sleep(1) # Let it stabilize and stop flashing
 		except BleakError:
 			self._disconnect_unexpected()
 

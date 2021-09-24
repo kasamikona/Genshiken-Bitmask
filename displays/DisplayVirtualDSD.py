@@ -26,9 +26,7 @@ class DisplayVirtualDSD(Display):
 		self.is_connected = True
 		# pygame stuff
 		self.pg_screen = pygame.Surface((48, 12), pygame.SRCALPHA, 32)
-		self.pg_window = pygame.display.set_mode((self.width*SCALE, self.height*SCALE),
-			#pygame.NOFRAME
-		)
+		self.pg_window = pygame.display.set_mode((self.width*SCALE, self.height*SCALE), pygame.DOUBLEBUF)
 		pygame.display.set_caption("Virtual Display Output")
 		#pygame.mouse.set_visible(False)
 		loop = asyncio.get_event_loop()
@@ -45,6 +43,7 @@ class DisplayVirtualDSD(Display):
 			return
 
 		self.is_connected = False
+		pygame.display.quit()
 		print("Disconnected")
 
 	async def prepare(self):
@@ -68,7 +67,6 @@ class DisplayVirtualDSD(Display):
 		await asyncio.sleep(1/self.max_fps)
 
 	async def wait_for_finish(self):
-		# TODO pygame close window
 		pass
 
 	async def _pygame_check_running(self):
