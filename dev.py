@@ -71,6 +71,10 @@ curTime = startDate
 frame = 0
 drawFrame = True
 
+######################
+### EFFECTS START HERE
+######################
+
 def testEffect(curTime, frame):
 	x = frame % 48
 	y = int(math.sin(curTime) * 6 + 6)
@@ -89,8 +93,21 @@ def drawLogo2(curTime, frame):
 				offset = int((frame - 32) + y)
 				if offset >= 0 and offset < 32:
 					matrix[y][x] = logo2[offset][x]
-					# if logo1[y][x] == 0 or logo1[y][x] == 1:
-					# 	matrix[y][x] = logo1[y][x]
+
+def fadeScanlines(curTime, frame, startFrame):
+	if startFrame <= frame:
+		for x in range(48):
+			for y in range(12):
+				if y % 2 == 1:
+					if x < (frame - startFrame) * 2:
+						matrix[y][x] = 0
+				else:
+					if (47 - x) < (frame - startFrame) * 2:
+						matrix[y][x] = 0
+
+####################
+### EFFECTS END HERE
+####################
 
 def drawMatrix():
 	for x in range(48):
@@ -104,13 +121,6 @@ while running:
 	if event.type == pygame.QUIT or keys[pygame.K_ESCAPE]:
 		running = False
 
-	if drawFrame:
-		pygame.display.set_caption("LED dev -- frame " + str(frame))
-		drawLogo2(curTime, frame)
-		drawLogo1(curTime, frame)
-		drawMatrix()
-		drawFrame = False
-
 	newTime = time.time()
 	curFrame = math.floor((newTime - startDate) * fps)
 	if curFrame > frame:
@@ -119,6 +129,14 @@ while running:
 		curTime = newTime
 		frame = curFrame
 		drawFrame = True
+
+	if drawFrame:
+		pygame.display.set_caption("LED dev -- frame " + str(frame))
+		drawLogo2(curTime, frame)
+		drawLogo1(curTime, frame)
+		fadeScanlines(curTime, frame, 64)
+		drawMatrix()
+		drawFrame = False
 
 	resized_screen = pygame.transform.scale(screen, (windowwidth, windowheight))
 	window.blit(resized_screen, (0, 0))
