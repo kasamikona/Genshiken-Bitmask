@@ -105,17 +105,35 @@ def fadeScanlines(curTime, frame, startFrame):
 					if (47 - x) < (frame - startFrame) * 2:
 						matrix[y][x] = 0
 
+rotozoomerAtans = [[0 for col in range(96)] for row in range(24)]
+def preloadRotozoomer():
+	for x in range(96):
+		for y in range(24):
+			rotozoomerAtans[y - 12][x - 48] = math.atan2(y, x)
+
+def drawDizzyCircleTiles(curTime, frame):
+	angle = frame / 15
+	for x in range(48):
+		for y in range(12):
+			xOffset = x - 24
+			yOffset = y - 6
+			trigParam = rotozoomerAtans[yOffset][xOffset] + angle
+			hypoParam = math.sqrt(yOffset * yOffset + xOffset * xOffset)
+			mappedY = round((math.sin(trigParam) * hypoParam) * math.sin(frame / 50))
+			mappedX = round((math.cos(trigParam) * hypoParam) * math.sin(frame / 50))
+			matrix[y][x] = (mappedX % 8 < 4) ^ (mappedY % 8 >= 4)
+
 def drawRotozoomer(curTime, frame):
-	angle = frame / 25
+	angle = frame / 15
 	for x in range(48):
 		for y in range(12):
 			xOffset = x - 24
 			yOffset = y - 6
 			trigParam = math.atan2(yOffset, xOffset) + angle
 			hypoParam = math.sqrt(yOffset * yOffset + xOffset * xOffset)
-			mappedY = round((math.sin(trigParam) * hypoParam) * math.sin(frame / 100))
-			mappedX = round((math.cos(trigParam) * hypoParam) * math.sin(frame / 100))
-			matrix[y][x] = (mappedX % 8 < 4) ^ (mappedY % 8 > 4)
+			mappedY = round((math.sin(trigParam) * hypoParam) * math.sin(frame / 50))
+			mappedX = round((math.cos(trigParam) * hypoParam) * math.sin(frame / 50))
+			matrix[y][x] = (mappedX % 8 < 4) ^ (mappedY % 8 >= 4)
 
 ####################
 ### EFFECTS END HERE
@@ -149,7 +167,9 @@ while running:
 		# drawLogo1(curTime, frame)
 		# fadeScanlines(curTime, frame, 64)
 
-		drawRotozoomer(curTime, frame)
+		preloadRotozoomer()
+		# drawRotozoomer(curTime, frame)
+		drawDizzyCircleTiles(curTime, frame)
 
 		drawMatrix()
 		drawFrame = False
