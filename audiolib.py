@@ -84,11 +84,10 @@ class AudioPlayer:
 		return self._is_playing
 
 async def run(ap):
-	ap.play("eat your apple.it", env={"SDL_AUDIODRIVER":"wasapi"})
+	ap.play("eat your apple.it")
 	oldbeat = None
 	while ap.is_playing():
 		t = ap.get_position()
-		#print(t)
 		bpm = 135
 		beat = math.floor(t*bpm/60)
 		beattext = ""
@@ -110,6 +109,5 @@ if __name__ == '__main__':
 	except KeyboardInterrupt as e:
 		print("Caught keyboard interrupt")
 		ap.stop()
-		#time.sleep(0.1)
 	finally:
 		loop.close()
