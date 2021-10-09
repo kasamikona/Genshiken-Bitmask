@@ -202,9 +202,78 @@ def drawRotozoomer(curTime, frame):
 			mappedX = round((math.cos(trigParam) * hypoParam) * math.sin(frame / 50))
 			matrix[y][x] = (mappedX % 8 < 4) ^ (mappedY % 8 >= 4)
 
+def drawRegularPolygon(curTime, frame):
+	points = []
+	sides = 3
+	for i in range(sides):
+		x = math.cos(2 * math.pi * (i / sides) + frame / 5) * 6 + 24
+		y = math.sin(2 * math.pi * (i / sides) + frame / 5) * 6 + 5
+		matrix[int(y)][int(x)] = 1
+		points.append([int(x), int(y)])
+	drawPolygon(points)
+
 ####################
 ### EFFECTS END HERE
 ####################
+
+##################################
+### AUXILIARY FUNCTIONS START HERE
+##################################
+
+def drawPolygon(points):
+	for i in range(len(points)):
+		x1 = points[i][0]
+		y1 = points[i][1]
+		if i == len(points) - 1:
+			x2 = points[0][0]
+			y2 = points[0][1]
+		else:
+			x2 = points[i + 1][0]
+			y2 = points[i + 1][1]
+		
+		drawLine(x1, y1, x2, y2)
+
+def drawLine(x1, y1, x2, y2):
+	dx = x2 - x1
+	dy = y2 - y1
+
+	if abs(dx) > abs(dy):
+		if x2 > x1:
+			for x in range(x1, x2):
+				rampStep = (x - x1) / (x2 - x1)
+				y = round((y2 - y1) * rampStep) + y1
+				if checkDrawOutOfBounds("y", y) and checkDrawOutOfBounds("x", x):
+					matrix[y][x] = 1
+		else:
+			for x in range(x2, x1):
+				rampStep = (x - x2) / (x1 - x2)
+				y = round((y1 - y2) * rampStep) + y2
+				if checkDrawOutOfBounds("y", y) and checkDrawOutOfBounds("x", x):
+					matrix[y][x] = 1
+	else:
+		if y2 > y1:
+			for y in range(y1, y2):
+				rampStep = (y - y1) / (y2 - y1)
+				x = round((x2 - x1) * rampStep) + x1
+				if checkDrawOutOfBounds("y", y) and checkDrawOutOfBounds("x", x):
+					matrix[y][x] = 1
+		else:
+			for y in range(y2, y1):
+				rampStep = (y - y2) / (y1 - y2)
+				x = round((x1 - x2) * rampStep) + x2
+				if checkDrawOutOfBounds("y", y) and checkDrawOutOfBounds("x", x):
+					matrix[y][x] = 1
+
+def checkDrawOutOfBounds(coord, value):
+	if coord == "x" and (value < 0 or value >= 48):
+		return False
+	if coord == "y" and (value < 0 or value >= 12):
+		return False
+	return True
+
+################################
+### AUXILIARY FUNCTIONS END HERE
+################################
 
 def drawMatrix():
 	for x in range(48):
@@ -234,9 +303,11 @@ while running:
 		# drawLogo1(curTime, frame)
 		# fadeScanlines(curTime, frame, 64)
 
-		preloadRotozoomer()
-		# drawRotozoomer(curTime, frame)
-		drawDizzyCircleTiles(curTime, frame)
+		# preloadRotozoomer()
+		# # drawRotozoomer(curTime, frame)
+		# drawDizzyCircleTiles(curTime, frame)
+
+		drawRegularPolygon(curTime, frame)
 
 		drawMatrix()
 		drawFrame = False
