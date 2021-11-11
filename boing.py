@@ -4,25 +4,18 @@ import displays
 
 USE_CLASSES = [
 	displays.DisplayDSD,
-	displays.DisplayVirtualDSD
+#	displays.DisplayVirtualDSD
 ]
 
 async def boing(display):
 	tref = time.time()
 	while display.is_connected:
-		await asyncio.gather(
-			boing_frame(display, time.time() - tref),
-			asyncio.sleep(1/display.max_fps)
-		)
+		await boing_frame(display, time.time() - tref)
 
-last_synced = 0
 async def boing_frame(display, time_sec):
 	draw_background(display, time_sec)
 	draw_foreground(display, time_sec)
-	do_sync = (time_sec - last_synced) > 5
-	if do_sync:
-		last_sync = time_sec
-	await display.send(do_sync)
+	await display.send(True)
 
 def draw_background(display, time_sec):
 	display.clear()
@@ -62,12 +55,24 @@ def lerp(a, b, f):
 def map(x, in_a, in_b, out_a, out_b):
 	return lerp(out_a, out_b, (x-in_a)/(in_b-in_a))
 
+display = None
+
+async def cleanup():
+	global display
+	if display and display.is_connected:
+		await display.disconnect()
+
 async def run():
+	global display
 	display = await ledmask.find_and_connect(classes=USE_CLASSES)
 	if not display:
 		return
 	await boing(display)
-	await display.disconnect()
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(run())
+loop = asyncio.new_event_loop()
+try:
+	loop.run_until_complete(run())
+except KeyboardInterrupt:
+	print("Stopped by keyboard interrupt")
+finally:
+	loop.run_until_complete(cleanup())

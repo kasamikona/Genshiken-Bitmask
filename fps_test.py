@@ -8,7 +8,7 @@ USE_CLASSES = [
 ]
 
 async def fps_test(display):
-	test_frames = 100
+	test_frames = 1000
 	sync_interval = 100
 
 	start_time = time.time()
@@ -40,16 +40,24 @@ async def fps_test(display):
 	print("Displayed %s frames in %s seconds, syncing every %s frames" % (test_frames, time_taken, sync_interval))
 	print("Measured fps", test_frames / time_taken)
 
+display = None
+
+async def cleanup():
+	global display
+	if display and display.is_connected:
+		await display.disconnect()
+
 async def run():
+	global display
 	display = await ledmask.find_and_connect(classes=USE_CLASSES)
 	if not display:
 		return
 	await fps_test(display)
-	await display.disconnect()
 
-loop = asyncio.get_event_loop()
+loop = asyncio.new_event_loop()
 try:
 	loop.run_until_complete(run())
 except KeyboardInterrupt:
-	print("\nInterrupted, connection not closed!")
-	print("You may need to power-cycle the display and/or BLE adapter to connect again.")
+	print("Stopped by keyboard interrupt")
+finally:
+	loop.run_until_complete(cleanup())
