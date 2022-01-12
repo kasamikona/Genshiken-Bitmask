@@ -1,100 +1,85 @@
 import asyncio, threading
 import sys, os, time, math
-from subprocess import Popen, PIPE, DEVNULL, STDOUT
+from subprocess import Popen, PIPE, DEVNULL
 
 ffplay_cmd = "ffplay" # Assume it's on path and executable
-ffmpeg_cmd = "ffmpeg"
-hw_latency = 0.1 # Around 100ms on typical hardware?
-audfmt = "-f s16le -ar 44100 -ac 2" # 16bit 44100Hz stereo
-audfmt_bytes = 4
+statmatch = (8, "M-A:  0.000")
+time_read_resolution = 0.01; # Good enough resolution for around 10fps
+time_offset = 0.1; #
 
 class AudioPlayer:
 	def __init__(self):
-		self._process_read = None
-		self._process_play = None
-		self._thread = None
-		self._position = 0
-		self._position_updated_at = time.perf_counter()
-		self._position_last_get = 0
-		self._is_playing = False
+		self.process = None
+		self.thread = None
+		self.position = 0
+		self.position_start = 0
+		self.position_updated_at = time.perf_counter()
+		self.position_last_get = 0
+		self.is_playing = False
 
-	def _play(self, filepath, env=None):
-		mixenv = os.environ.copy()
-		mixenv.update(env or {})
-		self._position = 0
-		self._is_playing = True
-		pipe_read, pipe_write = os.pipe()
-		noout = "-hide_banner -loglevel quiet"
-		cmd_read = f"{ffmpeg_cmd} {noout} -i".split()+[filepath]+f"{audfmt} pipe:1".split()
-		cmd_play = f"{ffplay_cmd} {noout} {audfmt} -nodisp -autoexit -probesize 32 -".split()
-		process_play = Popen(cmd_play, stdout=None, stderr=None, stdin=PIPE, env=mixenv)
-		process_read = Popen(cmd_read, stdout=pipe_write, stderr=None, stdin=DEVNULL, env=mixenv)
-		self._process_read = process_read
-		self._process_play = process_play
-		self._position_updated_at = time.perf_counter()
-		self._last_smoothed_position = 0
-		nextbuftime = time.perf_counter()
-		tcnt = 0
-		while process_read.poll() is None:
-			tnow = time.perf_counter()
-			if tnow > nextbuftime:
-				nextbuftime += 200/44100
-				try:
-					b = os.read(pipe_read, 200*audfmt_bytes)
-					tcnt += len(b)/4
-					process_play.stdin.write(b)
-					process_play.stdin.flush()
-					self._position = (tcnt+200*audfmt_bytes)/44100
-					self._position_updated_at = tnow
-				except Exception:
-					pass
-			time.sleep(1/500)
-		time.sleep(0.2)
-		self._is_playing = False
+	def runplay(self, filepath, start=0):
+		self.position = self.position_start = start
+		self.is_playing = True
+		command = [ffplay_cmd,"-hide_banner","-fflags","nobuffer","-flags","low_delay","-stats","-nodisp","-autoexit","-ss",str(start),filepath]
+		p = Popen(command, stdout=DEVNULL, stderr=PIPE, stdin=PIPE, text=True, encoding="utf8")
+		self.process = p
+		self.position_updated_at = time.perf_counter()
+		self.last_smoothed_position = 0
+		while p.poll() is None:
+			l = str(p.stderr.readline()).rstrip()
+			if l:
+				if l[statmatch[0]:].startswith(statmatch[1]):
+					#print(l);
+					self.position = max(0, float(l[:statmatch[0]].strip())) + start + 0.1
+					self.position_updated_at = time.perf_counter()
+					time.sleep(time_read_resolution)
+			else:
+				time.sleep(time_read_resolution)
+		self.is_playing = False
 			
-	def play(self, filepath, env=None):
-		if self._thread is not None:
+	def play(self, filepath, start=0):
+		if self.thread is not None:
 			return
 			
-		t = threading.Thread(target=self._play, args=(filepath,env))
+		t = threading.Thread(target=self.runplay, args=(filepath, start))
 		t.daemon = True
-		self._thread = t
-		self._position = 0
-		self._is_playing = True
+		self.thread = t
+		self.position = self.position_start = start
+		self.is_playing = True
 		t.start()
 		
 	def stop(self):
-		if self._process_read.poll() is None:
-			self._process_read.terminate()
-		if self._process_play.poll() is None:
-			self._process_play.terminate()
-		if self._thread is not None:
-			self._thread.join()
-			self._thread = None
+		if self.process is not None:
+			self.process.terminate()
+			self.process = None
+		if self.thread is not None:
+			self.thread.join()
+			self.thread = None
 	
 	def get_position(self):
-		t = -hw_latency
-		if self._position > 0:
-			dt = time.perf_counter() - self._position_updated_at
-			t = max(self._position_last_get, self._position + dt - hw_latency)
-		self._position_last_get = t
+		t = self.position_start
+		if self.position > t:
+			dt = time.perf_counter() - self.position_updated_at
+			t = max(self.position_last_get, self.position + dt)
+		self.position_last_get = t
 		return t
-	
-	def is_playing(self):
-		return self._is_playing
+
 
 async def run(ap):
-	ap.play("eat your apple.it")
+	ap.play("yuzukoncept.xm", start=0)
 	oldbeat = None
-	while ap.is_playing():
-		t = ap.get_position()
-		bpm = 135
+	while ap.is_playing:
+		t = ap.get_position()-0
+		#if t >= 1:
+		#	break
+		#print("gt %.3f" % t)
+		bpm = 125
 		beat = math.floor(t*bpm/60)
 		beattext = ""
 		if beat < 0:
-			beattext = "/"*(-beat)
+			beattext = "."*(-beat)
 		else:
-			beattext = "%3d %s|" % (beat+1, "  "*(beat%4))
+			beattext = "%3d:%1d" % ((beat//4)+1, (beat%4)+1)
 		if beattext != oldbeat:
 			print("Beat %s" % beattext)
 			oldbeat = beattext
@@ -102,12 +87,13 @@ async def run(ap):
 	ap.stop()
 
 if __name__ == '__main__':
-	loop = asyncio.get_event_loop()
+	loop = asyncio.new_event_loop()
 	ap = AudioPlayer()
 	try:
 		asyncio.run(run(ap))
 	except KeyboardInterrupt as e:
 		print("Caught keyboard interrupt")
 		ap.stop()
+		#time.sleep(0.1)
 	finally:
 		loop.close()
