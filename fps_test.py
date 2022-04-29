@@ -26,10 +26,11 @@ async def fps_test(display):
 				dsq = dx ** 2 + dy ** 2
 				display.buffer[i][j] = (2**display.bit_depth)-1 if dsq <= rsq else 0
 
+		if not display.is_connected:
+			print("Test aborted")
+			return
+
 		if (fn % 10) == 0:
-			if not display.is_connected:
-				print("Test aborted")
-				return
 			print("Generated frame", fn)
 
 		await display.send((fn % sync_interval) == 0)
@@ -53,6 +54,7 @@ async def run():
 	if not display:
 		return
 	await fps_test(display)
+	await display.disconnect()
 
 loop = asyncio.new_event_loop()
 try:

@@ -73,16 +73,21 @@ class DisplayDSD(Display):
 				if filter_addresses and d.address not in addresses:
 					break
 				if match_ble_device(d):
-					print("Found %s (%s)" % (d.name, d.address))
+					print("DisplayDSD found %s (%s)" % (d.name, d.address))
 					address = d.address
 					break
-
+		
 		if not address:
 			return None
+			
+		#address = "00:2A:EC:00:A0:D6"
+
+		#await asyncio.sleep(2) # Time for connection to reset after scanning
 
 		try:
 			client = BleakClient(address)
 			if not await client.connect():
+				#await client.disconnect()
 				return None
 
 			disp = cls(client)
@@ -93,7 +98,8 @@ class DisplayDSD(Display):
 
 			print("Connected to %s" % (address))
 			return disp
-		except BleakError:
+		except BleakError as e:
+			print(e)
 			return None
 
 	async def disconnect(self):
@@ -122,8 +128,9 @@ class DisplayDSD(Display):
 
 			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=True)
 			await asyncio.sleep(1) # Let it stabilize and stop flashing
-		except BleakError:
-			self._disconnect_unexpected()
+		except BleakError as e:
+			print(e)
+			await self.client.disconnect()
 
 	async def send(self, wait_response=False):
 		try:
@@ -133,14 +140,16 @@ class DisplayDSD(Display):
 				num_written_bytes = await self._write_more_data(out_bytes)
 				out_bytes = out_bytes[num_written_bytes:]
 			await self._write_data_end(wait_response)
-		except BleakError:
-			self._disconnect_unexpected()
+		except BleakError as e:
+			print(e)
+			await self.client.disconnect()
 
 	async def wait_for_finish(self):
 		try:
 			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05LEDON')), response=True) # Good enough
-		except BleakError:
-			self._disconnect_unexpected()
+		except BleakError as e:
+			print(e)
+			await self.client.disconnect()
 
 	def _get_output_bytes(self):
 		num_bytes = (self.num_bits + 7) // 8
@@ -160,8 +169,9 @@ class DisplayDSD(Display):
 			packet = b'\x08DATS' + length.to_bytes(2,'big') + b'\x00\x00'
 			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(packet)))
 			#await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK
-		except BleakError:
-			self._disconnect_unexpected()
+		except BleakError as e:
+			print(e)
+			await self.client.disconnect()
 
 	async def _write_data_end(self, wait_response):
 		try:
@@ -169,30 +179,34 @@ class DisplayDSD(Display):
 				await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')))
 				#await asyncio.sleep(0.01) # Hack because I cba to wait for DATCPOK
 			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=wait_response)
-			#await asyncio.sleep(0.01)
-		except BleakError:
-			self._disconnect_unexpected()
+			#await asyncio.sleep(0.005)
+		except BleakError as e:
+			print(e)
+			await self.client.disconnect()
 
 	async def _write_more_data(self, data):
 		write_amount = min(len(data), 15)
 		try:
 			packet = write_amount.to_bytes(1,'big') + data[:write_amount]
 			await self.client.write_gatt_char(CHAR_DAT, encrypt(pad(packet)))
-		except BleakError:
-			self._disconnect_unexpected()
+		except BleakError as e:
+			print(e)
+			await self.client.disconnect()
 		return write_amount
 
 	async def _start_notify_ack(self):
 		try:
 			await self.client.start_notify(CHAR_ACK, ack_handler)
-		except BleakError:
-			self._disconnect_unexpected()
+		except BleakError as e:
+			print(e)
+			await self.client.disconnect()
 
 	async def _stop_notify_ack(self):
 		try:
 			await self.client.stop_notify(CHAR_ACK)
-		except BleakError:
-			self._disconnect_unexpected()
+		except BleakError as e:
+			print(e)
+			await self.client.disconnect()
 
 	def _disconnect_unexpected(self, cbclient=None):
 		if self.is_connected:

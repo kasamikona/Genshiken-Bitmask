@@ -30,7 +30,7 @@ class DisplayVirtualDSD(Display):
 		pygame.display.set_caption("Virtual Display Output")
 		#pygame.mouse.set_visible(False)
 		loop = asyncio.get_event_loop()
-		loop.create_task(self._pygame_check_running())
+		self.pg_task = loop.create_task(self._pygame_check_running())
 
 	@classmethod
 	async def connect(cls, addresses=None):
@@ -44,6 +44,7 @@ class DisplayVirtualDSD(Display):
 
 		self.is_connected = False
 		pygame.display.quit()
+		self.pg_task.cancel()
 		print("Disconnected")
 
 	async def prepare(self):

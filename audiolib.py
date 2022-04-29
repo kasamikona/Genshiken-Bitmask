@@ -69,10 +69,7 @@ async def run(ap):
 	ap.play("yuzukoncept.xm", start=0)
 	oldbeat = None
 	while ap.is_playing:
-		t = ap.get_position()-0
-		#if t >= 1:
-		#	break
-		#print("gt %.3f" % t)
+		t = ap.get_position()
 		bpm = 125
 		beat = math.floor(t*bpm/60)
 		beattext = ""
