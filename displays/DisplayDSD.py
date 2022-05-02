@@ -61,7 +61,7 @@ class DisplayDSD(Display):
 			self.bit_remap[i] = reverse_map_bit(i) 
 
 	@classmethod
-	async def connect(cls, addresses=None):
+	async def connect(cls, addresses=None, dispargs=None):
 		if not addresses:
 			addresses = []
 		filter_addresses = len(addresses) > 0

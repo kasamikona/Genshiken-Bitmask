@@ -6,7 +6,7 @@ AUTO_SCAN_CLASSES = [
 	displays.DisplayDSD
 ]
 
-async def find_and_connect(addresses=None, classes=None):
+async def find_and_connect(addresses=None, classes=None, dispargs=None):
 	print("Looking for compatible display")
 
 	if not classes:
@@ -15,7 +15,7 @@ async def find_and_connect(addresses=None, classes=None):
 
 	display = None
 	for cls in classes:
-		display = await cls.connect(addresses)
+		display = await cls.connect(addresses, dispargs)
 		if display:
 			print("Found %s" % cls.__name__)
 			return display

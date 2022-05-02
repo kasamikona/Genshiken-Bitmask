@@ -11,7 +11,7 @@ class Display():
 		self.is_connected = False
 
 	@classmethod
-	async def connect(cls, addresses=None):
+	async def connect(cls, addresses=None, dispargs=None):
 		'''
 		Attempts to connect to an appropriate device.
 		May be given specific addresses to check.
