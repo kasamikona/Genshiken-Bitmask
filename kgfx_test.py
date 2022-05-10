@@ -20,7 +20,7 @@ class E_Checkerboard(kgfx.Effect):
 		self.distx = distx
 		self.disty = disty
 
-	def render(self, out, ins, t_global, t_global_f, t_event):
+	def render(self, out, ins, t_global, t_global_f, t_effect):
 		for x in range(out.width):
 			for y in range(out.height):
 				out.buffer[x][y] = \
@@ -33,7 +33,7 @@ class E_Mirror(kgfx.Effect):
 		self.speed = speed
 		self.dist = dist
 	
-	def render(self, out, ins, t_global, t_global_f, t_event):
+	def render(self, out, ins, t_global, t_global_f, t_effect):
 		inbuf = ins[0].buffer
 		inw = ins[0].width
 		outbuf = out.buffer
@@ -55,7 +55,7 @@ class E_Genshiken(kgfx.Effect):
 			[2,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0], \
 		]
 	
-	def render(self, out, ins, t_global, t_global_f, t_event):
+	def render(self, out, ins, t_global, t_global_f, t_effect):
 		for x in range(43):
 			if x>=out.width:
 				continue
@@ -69,7 +69,7 @@ class E_OverWobble(kgfx.Effect):
 	def __init__(self):
 		super().__init__()
 	
-	def render(self, out, ins, t_global, t_global_f, t_event):
+	def render(self, out, ins, t_global, t_global_f, t_effect):
 		beat = t_global * 125 / 60
 		secondhalf = (math.floor(beat)&63) > 31
 		ob = out.buffer
@@ -101,10 +101,10 @@ testscene = kgfx.Scene()
 testscene.layers.append(kgfx.Layer(48, 12)) # Layer 0
 testscene.layers.append(kgfx.Layer(48, 12)) # Layer 1
 testscene.layers.append(kgfx.Layer(43, 6))  # Layer 2 different size
-testscene.events.append(kgfx.Event(E_Checkerboard(5,1,10,8), 0)) # Checkerboard, no inputs
-testscene.events.append(kgfx.Event(E_Mirror(1,1), 0)) # Mirror, 1 input
-testscene.events.append(kgfx.Event(E_Genshiken(), 0)) # Genshiken logo, no inputs
-testscene.events.append(kgfx.Event(E_OverWobble(), 0)) # Over wobble, 1 inputs
+testscene.effects.append(E_Checkerboard(5,1,10,8)) # Checkerboard, no inputs
+testscene.effects.append(E_Mirror(1,1)) # Mirror, 1 input
+testscene.effects.append(E_Genshiken()) # Genshiken logo, no inputs
+testscene.effects.append(E_OverWobble()) # Over wobble, 1 inputs
 testscene.compositing_list.append((0, 1, [])) # Checkerboard -> Layer 1
 testscene.compositing_list.append((1, 0, [1])) # Layer 1 -> Mirror -> Layer 0
 testscene.compositing_list.append((2, 2, [])) # Genshiken logo -> Layer 2

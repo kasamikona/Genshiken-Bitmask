@@ -25,7 +25,7 @@ class DisplayVirtualDSD(Display):
 		self.max_fps = 10 if USE_HAX else 7.5 # Measured up to 10.5 fps with hax, 8.0 without
 		command = [ffplay_cmd,"-hide_banner","-exitonkeydown","-exitonmousedown","-window_title",title,
 			"-f","rawvideo","-pixel_format","gray","-s","48x12",
-			"-framerate","30","-vf","scale=480x120:flags=neighbor","-"]
+			"-framerate","60","-vf","scale=480x120:flags=neighbor","-"]
 		self.ffprocess = Popen(command, stdout=DEVNULL, stderr=DEVNULL, stdin=PIPE, bufsize=48*12)
 		print("Connected to virtual DSD display")
 		self.is_connected = True
