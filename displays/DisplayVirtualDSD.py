@@ -63,6 +63,7 @@ class DisplayVirtualDSD(Display):
 
 		if self.ffprocess.poll() != None:
 			self.is_connected = False
+			print("Disconnected by output")
 			return
 		self.ffprocess.stdin.write(bytes(bytes_out))
 

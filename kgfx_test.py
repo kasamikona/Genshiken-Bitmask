@@ -3,7 +3,6 @@ import displays
 import asyncio, math, sys, os, time
 from timeit import default_timer as timer
 import kgfx
-from subprocess import Popen, PIPE, DEVNULL
 
 USE_CLASSES = [
 	displays.DisplayDSD,
@@ -97,31 +96,29 @@ class E_OverWobble(kgfx.Effect):
 				if p < 2:
 					ob[x][y] = p
 
-testscene = kgfx.Scene()
-testscene.layers.append(kgfx.Layer(48, 12)) # Layer 0
-testscene.layers.append(kgfx.Layer(48, 12)) # Layer 1
-testscene.layers.append(kgfx.Layer(43, 6))  # Layer 2 different size
-testscene.effects.append(E_Checkerboard(5,1,10,8)) # Checkerboard, no inputs
-testscene.effects.append(E_Mirror(1,1)) # Mirror, 1 input
-testscene.effects.append(E_Genshiken()) # Genshiken logo, no inputs
-testscene.effects.append(E_OverWobble()) # Over wobble, 1 inputs
-testscene.compositing_list.append((0, 1, [])) # Checkerboard -> Layer 1
-testscene.compositing_list.append((1, 0, [1])) # Layer 1 -> Mirror -> Layer 0
-testscene.compositing_list.append((2, 2, [])) # Genshiken logo -> Layer 2
-testscene.compositing_list.append((3, 0, [2])) # Layer 2 -> Over wobble -> Layer 0
-testscene.final_layer = 0 # Output layer 0
-
-p_music = None
+testscene = None
 display = None
 
 async def kgfx_test():
-	global display, p_music
+	global display, testscene
+
+	testscene = kgfx.Scene()
+	testscene.layers.append(kgfx.Layer(48, 12)) # Layer 0
+	testscene.layers.append(kgfx.Layer(48, 12)) # Layer 1
+	testscene.layers.append(kgfx.Layer(43, 6))  # Layer 2 different size
+	testscene.add_effect("checker", E_Checkerboard(5,1,10,8)) # Checkerboard, no inputs
+	testscene.add_effect("mirror", E_Mirror(1,1)) # Mirror, 1 input
+	testscene.add_effect("gsklogo", E_Genshiken()) # Genshiken logo, no inputs
+	testscene.add_effect("gskwobble", E_OverWobble()) # Over wobble, 1 inputs
+	testscene.compositing_list.append(("checker", [], 1)) # Checkerboard -> Layer 1
+	testscene.compositing_list.append(("mirror", [1], 0)) # Layer 1 -> Mirror -> Layer 0
+	testscene.compositing_list.append(("gsklogo", [], 2)) # Genshiken logo -> Layer 2
+	testscene.compositing_list.append(("gskwobble", [2], 0)) # Layer 2 -> Over wobble -> Layer 0
+	testscene.final_layer = 0 # Output layer 0
+	testscene.play_music("pomcrop.mp3", loop=True)
 
 	start_time = time.time()
 	running = True
-
-	c_music = ["ffplay","-nodisp","-hide_banner","-loop","0","pomcrop.mp3"]
-	p_music = Popen(c_music, stdout=DEVNULL, stderr=DEVNULL, stdin=DEVNULL)
 
 	while running:
 		demo_time = time.time() - start_time
@@ -132,19 +129,17 @@ async def kgfx_test():
 		if display.is_connected:
 			await display.send(True)
 		else:
-			print("Test aborted")
+			#print("Test aborted")
 			running = False
 			break
 
-	await display.wait_for_finish()
-
-
 async def cleanup():
-	global display, p_music
+	global display, testscene
 	if display and display.is_connected:
+		await display.wait_for_finish()
 		await display.disconnect()
-	if p_music:
-		p_music.terminate()
+	if testscene:
+		testscene.cleanup()
 
 async def run():
 	global display
@@ -154,7 +149,6 @@ async def run():
 	if not display:
 		return
 	await kgfx_test()
-	await display.disconnect()
 
 loop = asyncio.new_event_loop()
 try:
