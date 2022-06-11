@@ -253,6 +253,34 @@ def drawTestScroller(demoTime, frame):
 		if scrollerXOffset >= 48:
 			break
 
+def drawStains(demoTime, frame):
+	for x in range(48):
+		for y in range(12):
+			xOffset = x + math.sin(demoTime * 2.0) * 20
+			yOffset = y + math.cos(demoTime * 1.5) * 25
+			xElong = 2.5 + math.sin(demoTime * 4.0)
+			yElong = 2.5 + math.cos(demoTime * 1.5) * 0.5
+			# xOffset = x
+			# yOffset = y
+			# xElong = 3
+			# yElong = 2.5
+			matrix[y][x] = (0.5 + (0.5 * math.sin(xOffset / xElong)) + 0.5 + (0.5 * math.sin(yOffset / yElong))) / 2.0;
+
+	### DITHERING
+	# ditherMatrix = [[0, 0.5], [0.75, 0.25]] # 2x2 convolution matrix, test
+	# ditherMatrix = [[0.125, 0.5], [0.875, 0.25]] # 2x2, another test
+	ditherMatrix = [[0, 0.5, 0.125, 0.625], [0.75, 0.25, 0.875, 0.375], [0.1875, 0.6875, 0.0625, 0.5625], [0.9375, 0.4375, 0.8125, 0.3125]]
+
+	n = 4
+	for x in range(48):
+	    for y in range(12):
+	        i = x % n
+	        j = y % n
+	        if matrix[y][x] >= ditherMatrix[i][j]:
+	            matrix[y][x] = 1
+	        else:
+	            matrix[y][x] = 0
+
 ####################
 ### EFFECTS END HERE
 ####################
@@ -322,6 +350,12 @@ def drawMatrix():
 			if matrix[y][x] == 1:
 				pygame.draw.polygon(screen, (255, 255, 255), ((x, y), (x, y), (x, y), (x, y)))
 
+def drawGrayscaleMatrix():
+	for x in range(48):
+		for y in range(12):
+			graytone = round(matrix[y][x] * 255)
+			pygame.draw.polygon(screen, (graytone, graytone, graytone), ((x, y), (x, y), (x, y), (x, y)))
+
 preloadRotozoomer()
 preloadTestScroller()
 
@@ -351,13 +385,16 @@ while running:
 		# fadeScanlines(demoTime, frame, 64)
 
 		# # drawRotozoomer(demoTime, frame)
-		drawDizzyCircleTiles(demoTime, frame)
+		# # #drawDizzyCircleTiles(demoTime, frame)
 
 		# drawRegularPolygon(demoTime, frame)
 
-		drawTestScroller(demoTime, frame)
+		# # #drawTestScroller(demoTime, frame)
 
-		drawMatrix()
+		drawStains(demoTime, frame)
+
+		# drawMatrix()
+		drawGrayscaleMatrix()
 		drawFrame = False
 
 	resized_screen = pygame.transform.scale(screen, (windowwidth, windowheight))
