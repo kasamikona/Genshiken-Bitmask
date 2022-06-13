@@ -126,6 +126,8 @@ charset5[93] = [[2,0,0,0,2],[0,1,1,1,0],[2,0,0,1,0],[2,2,0,1,0],[2,0,0,1,0],[0,1
 charset5[94] = [[2,2,2,0,2,2,2],[2,2,0,1,0,2,2],[2,0,1,0,1,0,2],[0,1,0,2,0,1,0],[2,0,2,2,2,0,2],[2,2,2,2,2,2,2],[2,2,2,2,2,2,2]]
 charset5[95] = [[2,2,2,2,2,2,2],[2,2,2,2,2,2,2],[2,2,2,2,2,2,2],[2,2,2,2,2,2,2],[2,0,0,0,0,0,2],[0,1,1,1,1,1,0],[2,0,0,0,0,0,2]]
 
+twister = [[30, 120, 210, 300]] * 48
+
 screen = pygame.Surface((48, 12), pygame.SRCALPHA, 32)
 window = pygame.display.set_mode((windowwidth, windowheight), pygame.NOFRAME)
 pygame.display.set_caption("LED dev app")
@@ -266,20 +268,67 @@ def drawStains(demoTime, frame):
 			# yElong = 2.5
 			matrix[y][x] = (0.5 + (0.5 * math.sin(xOffset / xElong)) + 0.5 + (0.5 * math.sin(yOffset / yElong))) / 2.0;
 
-	### DITHERING
-	# ditherMatrix = [[0, 0.5], [0.75, 0.25]] # 2x2 convolution matrix, test
-	# ditherMatrix = [[0.125, 0.5], [0.875, 0.25]] # 2x2, another test
-	ditherMatrix = [[0, 0.5, 0.125, 0.625], [0.75, 0.25, 0.875, 0.375], [0.1875, 0.6875, 0.0625, 0.5625], [0.9375, 0.4375, 0.8125, 0.3125]]
+	dithering()
+	
+def drawTwister(demoTime, frame):
+	param = 0
+	for col in range(48):
+		if demoTime > 5:
+			param = math.sin(demoTime) + (math.sin(demoTime * 2.5) * math.sin(demoTime * 1.5)) + (math.sin((col / 24.0)) * (math.pow(col / 10.0, 2) / 10.0))
+		angle1 = (demoTime + param) % (2 * math.pi)
+		angle2 = (angle1 + math.pi * 0.5) % (2 * math.pi)
+		angle3 = (angle1 + math.pi) % (2 * math.pi)
+		angle4 = (angle1 + math.pi * 1.5) % (2 * math.pi)
 
-	n = 4
-	for x in range(48):
-	    for y in range(12):
-	        i = x % n
-	        j = y % n
-	        if matrix[y][x] >= ditherMatrix[i][j]:
-	            matrix[y][x] = 1
-	        else:
-	            matrix[y][x] = 0
+		# First, calculate the vertexes and see which one is leftmost because we don't have to draw a line from/to it
+		angles = [angle1, angle2, angle3, angle4]
+		sinList = [math.sin(angle1), math.sin(angle2), math.sin(angle3), math.sin(angle4)]
+		cosList = [math.cos(angle1), math.cos(angle2), math.cos(angle3), math.cos(angle4)]
+		indexLeftmostVertex = cosList.index(min(cosList))
+
+		# Remove the leftmost vertex and its calculations
+		del angles[indexLeftmostVertex]
+		del sinList[indexLeftmostVertex]
+		del cosList[indexLeftmostVertex]
+
+		# Obtain the rightmost vertex
+		indexRightmostVertex = cosList.index(max(cosList))
+		rowRightmostVertex = math.floor(sinList[indexRightmostVertex] * 6 + 6)
+
+		#Draw rightmost vertex pixel
+		matrix[rowRightmostVertex][col] = cosList[indexRightmostVertex]
+
+		#Draw a line from the rightmost vertex to one of the other remaining two
+		vertex1 = 0
+		if indexRightmostVertex == 0:
+			vertex1 = 1
+		rowVertex1 = math.floor(sinList[vertex1] * 6 + 6)
+		
+		if rowVertex1 < rowRightmostVertex:
+			for row in range(rowRightmostVertex - rowVertex1):
+				pixelColor = cosList[vertex1] + (cosList[indexRightmostVertex] - cosList[vertex1]) * (row / (rowRightmostVertex - rowVertex1))
+				matrix[rowVertex1 + row][col] = max(pixelColor, 0.0)
+		elif rowVertex1 > rowRightmostVertex:
+			for row in range(rowVertex1 - rowRightmostVertex):
+				pixelColor = cosList[vertex1] + (cosList[indexRightmostVertex] - cosList[vertex1]) * (((rowVertex1 - rowRightmostVertex) - row) / (rowRightmostVertex - rowVertex1))
+				matrix[rowVertex1 - row][col] = max(pixelColor, 0.0)
+
+		#Draw a line from the rightmost vertex to the last one
+		vertex2 = 1
+		if indexRightmostVertex == 1 or vertex1 == 1:
+			vertex2 = 2
+		rowVertex2 = math.floor(sinList[vertex2] * 6 + 6)
+
+		if rowVertex2 < rowRightmostVertex:
+			for row in range(rowRightmostVertex - rowVertex2):
+				pixelColor = cosList[vertex2] + (cosList[indexRightmostVertex] - cosList[vertex2]) * (row / (rowRightmostVertex - rowVertex2))
+				matrix[rowVertex2 + row][col] = max(pixelColor, 0.0)
+		elif rowVertex2 > rowRightmostVertex:
+			for row in range(rowVertex2 - rowRightmostVertex):
+				pixelColor = cosList[vertex2] + (cosList[indexRightmostVertex] - cosList[vertex2]) * (((rowVertex2 - rowRightmostVertex) - row) / (rowRightmostVertex - rowVertex2))
+				matrix[rowVertex2 - row][col] = max(pixelColor, 0.0)
+
+		dithering()
 
 ####################
 ### EFFECTS END HERE
@@ -340,6 +389,24 @@ def checkDrawOutOfBounds(coord, value):
 		return False
 	return True
 
+def getGrayFromDepthTwister(pos):
+	return round(pos * 224 + 32)
+
+def dithering():
+	# ditherMatrix = [[0, 0.5], [0.75, 0.25]] # 2x2 convolution matrix, test
+	# ditherMatrix = [[0.125, 0.5], [0.875, 0.25]] # 2x2, another test
+	ditherMatrix = [[0, 0.5, 0.125, 0.625], [0.75, 0.25, 0.875, 0.375], [0.1875, 0.6875, 0.0625, 0.5625], [0.9375, 0.4375, 0.8125, 0.3125]]
+
+	n = 4
+	for x in range(48):
+	    for y in range(12):
+	        i = x % n
+	        j = y % n
+	        if matrix[y][x] > ditherMatrix[i][j]:
+	            matrix[y][x] = 1
+	        else:
+	            matrix[y][x] = 0
+
 ################################
 ### AUXILIARY FUNCTIONS END HERE
 ################################
@@ -391,7 +458,9 @@ while running:
 
 		# # #drawTestScroller(demoTime, frame)
 
-		drawStains(demoTime, frame)
+		# # # #drawStains(demoTime, frame)
+
+		drawTwister(demoTime, frame)
 
 		# drawMatrix()
 		drawGrayscaleMatrix()
