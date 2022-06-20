@@ -1,7 +1,6 @@
 import ledmask as ledmask
 import displays
 import asyncio, math, sys, os, time
-from timeit import default_timer as timer
 import kgfx
 
 USE_CLASSES = [
@@ -102,34 +101,23 @@ display = None
 async def kgfx_test():
 	global display, testscene
 
-	testscene = kgfx.Scene()
-	testscene.layers.append(kgfx.Layer(48, 12)) # Layer 0
-	testscene.layers.append(kgfx.Layer(48, 12)) # Layer 1
-	testscene.layers.append(kgfx.Layer(43, 6))  # Layer 2 different size
-	testscene.add_effect("checker", E_Checkerboard(5,1,10,8)) # Checkerboard, no inputs
-	testscene.add_effect("mirror", E_Mirror(1,1)) # Mirror, 1 input
-	testscene.add_effect("gsklogo", E_Genshiken()) # Genshiken logo, no inputs
-	testscene.add_effect("gskwobble", E_OverWobble()) # Over wobble, 1 inputs
-	testscene.compositing_list.append(("checker", [], 1)) # Checkerboard -> Layer 1
-	testscene.compositing_list.append(("mirror", [1], 0)) # Layer 1 -> Mirror -> Layer 0
-	testscene.compositing_list.append(("gsklogo", [], 2)) # Genshiken logo -> Layer 2
-	testscene.compositing_list.append(("gskwobble", [2], 0)) # Layer 2 -> Over wobble -> Layer 0
-	testscene.final_layer = 0 # Output layer 0
-	testscene.play_music("pomcrop.mp3", loop=True)
+	testscene = kgfx.SceneAnimator("test.story", [E_Checkerboard, E_Mirror, E_Genshiken, E_OverWobble])
 
-	start_time = time.time()
+	t_start = time.time()+0.5 # Start 0.5 seconds from now
 	running = True
 
 	while running:
-		demo_time = time.time() - start_time
-		final_layer	= testscene.render(demo_time)
+		t = time.time() - t_start
+		if not testscene.update(t):
+			running = False
+			break
+		final_layer = testscene.render(t)
 		if final_layer:
 			display.buffer = final_layer.buffer
 
 		if display.is_connected:
 			await display.send(True)
 		else:
-			#print("Test aborted")
 			running = False
 			break
 
@@ -150,10 +138,11 @@ async def run():
 		return
 	await kgfx_test()
 
-loop = asyncio.new_event_loop()
-try:
-	loop.run_until_complete(run())
-except KeyboardInterrupt:
-	print("Stopped by keyboard interrupt")
-finally:
-	loop.run_until_complete(cleanup())
+if __name__ == "__main__":
+	loop = asyncio.new_event_loop()
+	try:
+		loop.run_until_complete(run())
+	except KeyboardInterrupt:
+		print("Stopped by keyboard interrupt")
+	finally:
+		loop.run_until_complete(cleanup())
