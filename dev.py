@@ -3,6 +3,7 @@
 import pygame
 import time
 import math
+import random
 
 windowwidth = 48 * 10
 windowheight = 12 * 10
@@ -306,11 +307,11 @@ def drawTwister(demoTime, frame):
 		
 		if rowVertex1 < rowRightmostVertex:
 			for row in range(rowRightmostVertex - rowVertex1):
-				pixelColor = cosList[vertex1] + (cosList[indexRightmostVertex] - cosList[vertex1]) * (row / (rowRightmostVertex - rowVertex1))
+				pixelColor = (cosList[vertex1] + (cosList[indexRightmostVertex] - cosList[vertex1]) * (row / (rowRightmostVertex - rowVertex1)) + 1.0) / 2.0
 				matrix[rowVertex1 + row][col] = max(pixelColor, 0.0)
 		elif rowVertex1 > rowRightmostVertex:
 			for row in range(rowVertex1 - rowRightmostVertex):
-				pixelColor = cosList[vertex1] + (cosList[indexRightmostVertex] - cosList[vertex1]) * (((rowVertex1 - rowRightmostVertex) - row) / (rowRightmostVertex - rowVertex1))
+				pixelColor = (cosList[vertex1] + (cosList[indexRightmostVertex] - cosList[vertex1]) * (((rowVertex1 - rowRightmostVertex) - row) / (rowRightmostVertex - rowVertex1)) + 1.0) / 2.0
 				matrix[rowVertex1 - row][col] = max(pixelColor, 0.0)
 
 		#Draw a line from the rightmost vertex to the last one
@@ -321,14 +322,64 @@ def drawTwister(demoTime, frame):
 
 		if rowVertex2 < rowRightmostVertex:
 			for row in range(rowRightmostVertex - rowVertex2):
-				pixelColor = cosList[vertex2] + (cosList[indexRightmostVertex] - cosList[vertex2]) * (row / (rowRightmostVertex - rowVertex2))
+				pixelColor = (cosList[vertex2] + (cosList[indexRightmostVertex] - cosList[vertex2]) * (row / (rowRightmostVertex - rowVertex2)) + 1.0) /2.0
 				matrix[rowVertex2 + row][col] = max(pixelColor, 0.0)
 		elif rowVertex2 > rowRightmostVertex:
 			for row in range(rowVertex2 - rowRightmostVertex):
-				pixelColor = cosList[vertex2] + (cosList[indexRightmostVertex] - cosList[vertex2]) * (((rowVertex2 - rowRightmostVertex) - row) / (rowRightmostVertex - rowVertex2))
+				pixelColor = (cosList[vertex2] + (cosList[indexRightmostVertex] - cosList[vertex2]) * (((rowVertex2 - rowRightmostVertex) - row) / (rowRightmostVertex - rowVertex2)) + 1.0) / 2.0
 				matrix[rowVertex2 - row][col] = max(pixelColor, 0.0)
 
 		dithering()
+
+# Code shamelessly ported and adapted from https://www.khanacademy.org/computer-programming/metaballs/6209526669246464
+pxSize = 1
+sumThreshold = 5
+numMetaballs = 3
+metaballs = []
+for ball in range(numMetaballs):
+	metaballs.append({
+		"x": random.randint(0, 48),
+		"y": random.randint(0, 12),
+		"r": random.randint(5, 15),
+		"vx": random.choice([-2, -1, 1, 2]),
+		"vy": random.choice([-2, -1, 1, 2])
+		# "vx": random.choice([-2, -1, 0.1, 0.5, 1.5]),
+		# "vy": random.choice([-1, -0.25, 1, 2])
+	})
+def drawMetaballs(demoTime, frame):
+	for i in range(numMetaballs):
+		c = metaballs[i]
+
+		c["x"] += c["vx"]
+		c["y"] += c["vy"]
+		
+		if c["x"] < 0:
+			c["vx"] = +abs(c["vx"])
+		
+		if c["x"] > 48:
+			c["vx"] = -abs(c["vx"])
+		
+		if c["y"] < 0:
+			c["vy"] = +abs(c["vy"])
+		
+		if c["y"] > 12:
+			c["vy"] = -abs(c["vy"])
+
+	for x in range(0, 48, pxSize):
+		for y in range(0, 12, pxSize):
+			sum = 0
+			closestD2 = math.inf;
+			closestColor = None;
+			for i in range(numMetaballs):
+				c = metaballs[i]
+				dx = x - c["x"]
+				dy = y - c["y"]
+				d2 = dx * dx + dy * dy
+				if d2 == 0:
+					d2 = 0.00001
+				sum += c["r"] * c["r"] / d2
+			if sum > sumThreshold:
+				matrix[y][x] = 1
 
 ####################
 ### EFFECTS END HERE
@@ -399,13 +450,13 @@ def dithering():
 
 	n = 4
 	for x in range(48):
-	    for y in range(12):
-	        i = x % n
-	        j = y % n
-	        if matrix[y][x] > ditherMatrix[i][j]:
-	            matrix[y][x] = 1
-	        else:
-	            matrix[y][x] = 0
+		for y in range(12):
+			i = x % n
+			j = y % n
+			if matrix[y][x] > ditherMatrix[i][j]:
+				matrix[y][x] = 1
+			else:
+				matrix[y][x] = 0
 
 ################################
 ### AUXILIARY FUNCTIONS END HERE
@@ -460,10 +511,12 @@ while running:
 
 		# # # #drawStains(demoTime, frame)
 
-		drawTwister(demoTime, frame)
+		# # # # #drawTwister(demoTime, frame)
 
-		# drawMatrix()
-		drawGrayscaleMatrix()
+		drawMetaballs(demoTime, frame)
+
+		drawMatrix()
+		#drawGrayscaleMatrix()
 		drawFrame = False
 
 	resized_screen = pygame.transform.scale(screen, (windowwidth, windowheight))
