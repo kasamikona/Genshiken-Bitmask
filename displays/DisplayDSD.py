@@ -67,15 +67,18 @@ class DisplayDSD(Display):
 		filter_addresses = len(addresses) > 0
 		
 		address = None
-		async with BleakScanner() as scanner:
-			await asyncio.sleep(2) # 2 seconds should be long enough
-			for d in scanner.discovered_devices:
-				if filter_addresses and d.address not in addresses:
-					break
-				if match_ble_device(d):
-					print("DisplayDSD found %s (%s)" % (d.name, d.address))
-					address = d.address
-					break
+		try:
+			async with BleakScanner() as scanner:
+				await asyncio.sleep(2) # 2 seconds should be long enough
+				for d in scanner.discovered_devices:
+					if filter_addresses and d.address not in addresses:
+						break
+					if match_ble_device(d):
+						print("DisplayDSD found %s (%s)" % (d.name, d.address))
+						address = d.address
+						break
+		except OSError:
+			pass
 		
 		if not address:
 			return None
