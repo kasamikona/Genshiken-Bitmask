@@ -17,15 +17,15 @@ class Scene:
 
 	def oneshot(self, index_out, name_effect, indexes_ins, t_global):
 		effect = self.effects[name_effect]
-		t_effect = t_global - self.effects_tstart[name_effect]
+		t_effect = t_global - self.effects[name_effect].tstart
 		out = self.layers[index_out]
 		ins = [self.layers[x] for x in indexes_ins]
 		effect.render(out, ins, t_global, self.frame_count, t_effect)
 
-	def add_effect(self, name_effect, effect, tstart=0):
+	def add_effect(self, name_effect, effectclass, tstart=0):
 		self.remove_effect(name_effect)
+		effect = effectclass(tstart)
 		self.effects[name_effect] = effect
-		self.effects_tstart[name_effect] = tstart
 
 	def remove_effect(self, name_effect):
 		if name_effect in self.effects:
@@ -37,9 +37,9 @@ class Scene:
 			self.effects[name_effect].cleanup()
 		self.effects.clear()
 
-	def add_layer(self, name_layer, layer):
+	def add_layer(self, name_layer, width, height):
 		self.remove_layer(name_layer)
-		self.layers[name_layer] = layer
+		self.layers[name_layer] = Layer(width, height)
 
 	def remove_layer(self, name_layer):
 		if name_layer in self.layers:
@@ -75,11 +75,12 @@ class Layer:
 		del self.buffer # idk if it would GC, could memory leak large arrays
 
 class Effect:
-	def __init__(self):
+	def __init__(self, tstart=0):
+		self.tstart = tstart
 		self.options = {}
 		self.parameters = {}
 
-	def render(self, out, ins, t_global, t_global_f, t_effect):
+	def render(self, out, ins, t, t_global, t_frame):
 		pass
 
 	def cleanup(self):
@@ -196,19 +197,18 @@ class SceneAnimator:
 		elif command == "addeffect":
 			effectname = tokens.pop(0)
 			effectclass = tokens.pop(0)
-			effectargs = [(float(x) if x.isnumeric() else x) for x in tokens]
 			if not effectclass in self.available_effects:
 				print("Unknown effect class:", effectclass)
 				return True
-			effectinstance = self.available_effects[effectclass](*effectargs)
-			self.scene.add_effect(effectname, effectinstance, at_time)
+			self.scene.add_effect(effectname, self.available_effects[effectclass], at_time)
+			self._set_effect_optparam(self.scene.effects[effectname], tokens)
 		elif command == "deleffect":
 			self.scene.remove_effect(tokens.pop(0))
 		elif command == "addlayer":
 			layername = tokens.pop(0)
 			layerwidth = int(tokens.pop(0))
 			layerheight = int(tokens.pop(0))
-			self.scene.add_layer(layername, Layer(layerwidth, layerheight))
+			self.scene.add_layer(layername, layerwidth, layerheight)
 		elif command == "dellayer":
 			self.scene.remove_layer(tokens.pop(0))
 		elif command == "draw":
@@ -221,6 +221,9 @@ class SceneAnimator:
 		elif command == "loop":
 			self.scene.loop_actions.clear()
 			self.sub_parser = "loop"
+		elif command == "set":
+			effectname = tokens.pop(0)
+			self._set_effect_optparam(self.scene.effects[effectname], tokens)
 		else:
 			print("Unknown story command:", command)
 			return True
@@ -262,3 +265,11 @@ class SceneAnimator:
 		y = y0 + (y1-y0)*x
 		
 		return y
+
+	def _set_effect_optparam(self, effect, args):
+		for arg in args:
+			k,v = arg.split("=")
+			if k.startswith("$") and len(k) > 1:
+				effect.parameters[k[1:]] = float(v)
+			else:
+				effect.options[k] = v
