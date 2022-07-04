@@ -1,3 +1,5 @@
+STORY_VERSION = "KGFX 0.1"
+
 class Scene:
 	def __init__(self):
 		self.layers = {}
@@ -111,6 +113,11 @@ class SceneAnimator:
 		self.scene = Scene()
 		self.sub_parser = None
 		self.curves = [] # (eff, param, t0, t1, v0, v1, shape)
+		
+		filever = self.story_file.readline().strip()
+		if filever.lower() != STORY_VERSION.lower():
+			print("Wrong story version! code ver %s, file ver %s" % (STORY_VERSION, filever))
+			self.cleanup()
 
 	def update(self, t):
 		if self.ended:
@@ -164,10 +171,10 @@ class SceneAnimator:
 	def _process_next(self, at_time):
 		current_offset = self.story_file.tell()
 		line = self.story_file.readline()
-		if line == "":
+		if line == "": #EOF
 			self.cleanup()
 			return False
-		tokens = shlex.split(line, comments=True, posix=True)
+		tokens = shlex.split(line.strip(), comments=True, posix=True)
 		return self._process_tokens(tokens, at_time)
 
 	def _process_tokens(self, tokens, at_time):
@@ -243,9 +250,9 @@ class SceneAnimator:
 
 	def _curve_value(self, x, y0, y1, shape):
 		if x < 0:
-			x = 0
+			return y0
 		if x > 1:
-			x = 1
+			return y1
 		sh = shape.lower()
 		if sh == "fast":
 			x = math.sin(x*math.pi*0.5)
@@ -258,12 +265,7 @@ class SceneAnimator:
 				x = math.sin(x*math.pi)*0.5
 			else:
 				x = 1-(math.sin(x*math.pi)*0.5)
-		##elif sh == "hold":
-		##	x = 0
-		# elif sh == "linear": pass
-		
 		y = y0 + (y1-y0)*x
-		
 		return y
 
 	def _set_effect_optparam(self, effect, args):
