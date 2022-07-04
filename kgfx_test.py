@@ -103,7 +103,7 @@ async def kgfx_test():
 
 	testscene = kgfx.SceneAnimator("test.story", [E_Checkerboard, E_Mirror, E_Genshiken, E_OverWobble])
 
-	t_start = time.time()+0.5 # Start 0.5 seconds from now
+	t_start = time.time()+1 # Start 1 second from now
 	running = True
 
 	while running:

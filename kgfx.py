@@ -76,7 +76,8 @@ class Layer:
 
 class Effect:
 	def __init__(self):
-		pass
+		self.options = {}
+		self.parameters = {}
 
 	def render(self, out, ins, t_global, t_global_f, t_effect):
 		pass
@@ -87,7 +88,7 @@ class Effect:
 from subprocess import Popen, PIPE, DEVNULL
 class Music:
 	def __init__(self, filename, loop=False):
-		self.command = ["ffplay","-nodisp","-hide_banner","-loop",("0" if loop else "1"),filename]
+		self.command = ["ffplay","-nodisp","-hide_banner","-flags","low_delay","-loop",("0" if loop else "1"),filename]
 		self.mproc = Popen(self.command, stdout=DEVNULL, stderr=DEVNULL, stdin=DEVNULL)
 
 	def stop(self):
@@ -97,19 +98,28 @@ class Music:
 
 import shlex
 class SceneAnimator:
-	def __init__(self, story_filename, effect_classes):
+	def __init__(self, story_filename, effect_classes, time_stdout=10):
+		self.time_stdout = time_stdout
 		self.story_file = open(story_filename)
 		self.ended = False
 		self.available_effects = {}
 		for ec in effect_classes:
 			self.available_effects[ec.__name__] = ec
 		self.time_waiting = 0
+		self.last_update = 0
 		self.scene = Scene()
 		self.sub_parser = None
+		self.curves = [] # (eff, param, t0, t1, v0, v1, shape)
 
 	def update(self, t):
-		if self.time_waiting < 0 or self.ended:
+		if self.ended:
 			return False
+		
+		if t < 0 or self.time_waiting < 0:
+			return True
+		if self.time_stdout > 0 and (t//self.time_stdout) > (self.last_update//self.time_stdout):
+			print("t = %.1f" % t)
+		self.last_update = t
 		while t >= self.time_waiting:
 			if not self._process_next(self.time_waiting):
 				break
@@ -227,3 +237,28 @@ class SceneAnimator:
 		action = (layerout,effectname,layersin)
 		self.scene.loop_actions.append(action)
 		return True
+
+	def _curve_value(self, x, y0, y1, shape):
+		if x < 0:
+			x = 0
+		if x > 1:
+			x = 1
+		sh = shape.lower()
+		if sh == "fast":
+			x = math.sin(x*math.pi*0.5)
+		elif sh == "slow":
+			x = 1-math.sin((1-x)*math.pi*0.5)
+		elif sh == "smooth":
+			x = math.sin(x*math.pi*0.5)**2
+		elif sh == "sharp":
+			if x < 0.5:
+				x = math.sin(x*math.pi)*0.5
+			else:
+				x = 1-(math.sin(x*math.pi)*0.5)
+		##elif sh == "hold":
+		##	x = 0
+		# elif sh == "linear": pass
+		
+		y = y0 + (y1-y0)*x
+		
+		return y
