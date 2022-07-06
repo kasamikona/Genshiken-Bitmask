@@ -36,7 +36,7 @@ class E_Mirror(kgfx.Effect):
 		p = self.parameters
 		p["speed"] = 0
 		p["dist"] = 0
-	
+
 	def render(self, out, ins, t, t_global, t_frame):
 		p = self.parameters
 		speed = p["speed"]
@@ -61,7 +61,7 @@ class E_Genshiken(kgfx.Effect):
 			[0,0,1,1,1,0,0,1,0,0,0,1,0,0,1,0,1,1,1,0,0,1,0,0,1,0,1,0,1,0,0,1,0,0,1,0,0,0,1,0,0,1,0], \
 			[2,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0], \
 		]
-	
+
 	def render(self, out, ins, t, t_global, t_frame):
 		for x in range(43):
 			if x>=out.width:
@@ -76,7 +76,7 @@ class E_OverWobble(kgfx.Effect):
 	def __init__(self, tstart):
 		super().__init__(tstart)
 		self.parameters["wobble"] = 1
-	
+
 	def render(self, out, ins, t, t_global, t_frame):
 		beat = t * 125 / 60
 		wobble = self.parameters["wobble"] #(math.floor(beat)&63) > 31

@@ -72,7 +72,7 @@ class Layer:
 		self.width = width
 		self.height = height
 		self.buffer = [[0]*height for i in range(width)]
-	
+
 	def cleanup(self):
 		del self.buffer # idk if it would GC, could memory leak large arrays
 
@@ -112,8 +112,8 @@ class SceneAnimator:
 		self.last_update = 0
 		self.scene = Scene()
 		self.sub_parser = None
-		self.curves = [] # (eff, param, t0, t1, v0, v1, shape)
-		
+		self.curves = []
+
 		filever = self.story_file.readline().strip()
 		if filever.lower() != STORY_VERSION.lower():
 			print("Wrong story version! code ver %s, file ver %s" % (STORY_VERSION, filever))
@@ -122,7 +122,13 @@ class SceneAnimator:
 	def update(self, t):
 		if self.ended:
 			return False
-		
+
+		for i in reversed(range(len(self.curves))):
+			curve = self.curves[i]
+			curve.apply(self.scene, t)
+			if curve.is_finished(t):
+				del self.curves[i]
+
 		if t < 0 or self.time_waiting < 0:
 			return True
 		if self.time_stdout > 0 and (t//self.time_stdout) > (self.last_update//self.time_stdout):
@@ -231,12 +237,22 @@ class SceneAnimator:
 		elif command == "set":
 			effectname = tokens.pop(0)
 			self._set_effect_optparam(self.scene.effects[effectname], tokens)
+		elif command == "anim":
+			duration = self._parse_time(tokens.pop(0))
+			effect = tokens.pop(0)
+			parameter = tokens.pop(0)
+			y0 = float(tokens.pop(0))
+			y1 = float(tokens.pop(0))
+			shape = "linear"
+			if len(tokens) > 0:
+				shape = tokens.pop(0)
+			self.curves.append(ParameterCurve(at_time, duration, effect, parameter, y0, y1, shape))
 		else:
 			print("Unknown story command:", command)
 			return True
 
 		return True
-	
+
 	def _process_tokens_loop(self, tokens, at_time):
 		if tokens[0].lower() == "loopend":
 			self.sub_parser = None
@@ -248,26 +264,6 @@ class SceneAnimator:
 		self.scene.loop_actions.append(action)
 		return True
 
-	def _curve_value(self, x, y0, y1, shape):
-		if x < 0:
-			return y0
-		if x > 1:
-			return y1
-		sh = shape.lower()
-		if sh == "fast":
-			x = math.sin(x*math.pi*0.5)
-		elif sh == "slow":
-			x = 1-math.sin((1-x)*math.pi*0.5)
-		elif sh == "smooth":
-			x = math.sin(x*math.pi*0.5)**2
-		elif sh == "sharp":
-			if x < 0.5:
-				x = math.sin(x*math.pi)*0.5
-			else:
-				x = 1-(math.sin(x*math.pi)*0.5)
-		y = y0 + (y1-y0)*x
-		return y
-
 	def _set_effect_optparam(self, effect, args):
 		for arg in args:
 			k,v = arg.split("=")
@@ -275,3 +271,45 @@ class SceneAnimator:
 				effect.parameters[k[1:]] = float(v)
 			else:
 				effect.options[k] = v
+
+import math
+class ParameterCurve:
+	def __init__(self, t0, duration, effect, parameter, y0, y1, shape):
+		self.t0 = t0
+		self.duration = duration
+		self.effect = effect
+		self.parameter = parameter
+		self.y0 = y0
+		self.y1 = y1
+		self.shape = shape
+
+	def apply(self, scene, t):
+		if self.effect not in scene.effects:
+			return
+		effect = scene.effects[self.effect]
+		if self.parameter not in effect.parameters:
+			return
+		x = (t-self.t0) / self.duration
+		y = 0
+		if x < 0:
+			y = self.y0
+		elif x > 1:
+			y = self.y1
+		else:
+			sh = self.shape.lower()
+			if sh == "fast":
+				x = math.sin(x*math.pi*0.5)
+			elif sh == "slow":
+				x = 1-math.sin((1-x)*math.pi*0.5)
+			elif sh == "smooth":
+				x = math.sin(x*math.pi*0.5)**2
+			elif sh == "sharp":
+				if x < 0.5:
+					x = math.sin(x*math.pi)*0.5
+				else:
+					x = 1-(math.sin(x*math.pi)*0.5)
+			y = self.y0 + (self.y1-self.y0)*x
+		effect.parameters[self.parameter] = y
+
+	def is_finished(self, t):
+		return t > (self.t0+self.duration)

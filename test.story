@@ -16,6 +16,7 @@ loop
 	0 gskwobble 2
 loopend
 output 0
+anim 10 checker size 2 10 fast
 
 at 8:0/125
 set gskwobble $wobble=1
