@@ -9,6 +9,7 @@ windowwidth = 48 * 10
 windowheight = 12 * 10
 fps = 10
 matrix = [[0 for col in range(48)] for row in range(12)]
+greetsMatrix = [[0 for col in range(48)] for row in range(12)]
 
 logo1 = [ \
 	[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2], \
@@ -265,6 +266,13 @@ def drawRegularPolygon(demoTime, frame):
 
 phraseTestScroller = "LOREM IPSUM DOLOR SIT AMET CONSECTETUR ADIPISCING ELIT"
 scrchars = []
+
+greetsChars = []
+greets = ["ACHIFAIFA", "COLLAPSE", "LFT", "GARGAJ", "IMOBILIS", "MARCAN", "SNS", "SOGA"]
+greetsAscii = [[], [], [], [], [], [], [], []]
+greetsChars = [[], [], [], [], [], [], [], []]
+greetsWidth = [0, 0, 0, 0, 0, 0, 0, 0]
+
 def preloadTestScroller():
 	scrascii = []
 	for a in phraseTestScroller:
@@ -272,6 +280,18 @@ def preloadTestScroller():
 	
 	for b in scrascii:
 		scrchars.append(charset5[b])
+
+def preloadGreets():
+	for indexName, name in enumerate(greets):
+		for a in name:
+			greetsAscii[indexName].append(ord(a))
+			if a == "I":
+				greetsWidth[indexName] = greetsWidth[indexName] + 2
+			else:
+				greetsWidth[indexName] = greetsWidth[indexName] + 6
+
+		for b in greetsAscii[indexName]:
+			greetsChars[indexName].append(charset5[b])
 
 def drawTestScroller(demoTime, frame):
 	scrollerXOffset = 48 - int(demoTime * 15)
@@ -287,6 +307,63 @@ def drawTestScroller(demoTime, frame):
 		scrollerXOffset = scrollerXOffset + len(char[0]) - 1
 		if scrollerXOffset >= 48:
 			break
+
+def drawGreets(demoTime, frame):
+	if ((frame % 30) / 10) < 1.0 and math.floor(frame / 30) < len(greets):
+		name = math.floor(frame / 30)
+		greetXOffset = math.floor(24 - (greetsWidth[name] / 2)) - 1
+		greetYOffset = 2
+		for indexChar, char in enumerate(greetsChars[name]):
+			if greetXOffset + len(char[0]) >= 0:
+				for indexRow, row in enumerate(char):
+					for indexPixel, pixel in enumerate(row):
+						pixelX = indexPixel + greetXOffset
+						pixelY = indexRow + greetYOffset
+						if (pixel == 0 or pixel == 1) and checkDrawOutOfBounds("x", pixelX) and checkDrawOutOfBounds("y", pixelY):
+							greetsMatrix[pixelY][pixelX] = pixel
+			greetXOffset = greetXOffset + len(char[0]) - 1
+	else:
+		tempMatrix = [[0 for col in range(48)] for row in range(12)]
+		for x in range(48):
+			for y in range(12):
+				tempSum = 0 # Cell 5 does not count towards total
+				if y > 0 and x > 0:
+					tempSum = tempSum + greetsMatrix[y - 1][x - 1] # Cell 1
+				if y > 0:
+					tempSum = tempSum + greetsMatrix[y - 1][x] # Cell 2
+				if y > 0 and x < 47:
+					tempSum = tempSum + greetsMatrix[y - 1][x + 1] # Cell 3
+				if x > 0:
+					tempSum = tempSum + greetsMatrix[y][x - 1] # Cell 4
+				if x < 47:
+					tempSum = tempSum + greetsMatrix[y][x + 1] # Cell 6
+				if y < 11 and x > 0:
+					tempSum = tempSum + greetsMatrix[y + 1][x - 1] # Cell 7
+				if y < 11:
+					tempSum = tempSum + greetsMatrix[y + 1][x] # Cell 8
+				if y < 11 and x < 47:
+					tempSum = tempSum + greetsMatrix[y + 1][x + 1] # Cell 9
+				
+				# If the cell is alive, then it stays alive if it has either 2 or 3 live neighbors.
+				if greetsMatrix[y][x] == 1:
+					if tempSum == 2 or tempSum == 3:
+						tempMatrix[y][x] = 1
+					else:
+						tempMatrix[y][x] == 0
+				# If the cell is dead, then it springs to life only in the case that it has 3 live neighbors.
+				if greetsMatrix[y][x] == 0:
+					if tempSum == 3:
+						tempMatrix[y][x] = 1
+					else:
+						tempMatrix[y][x] = 0
+
+		for x in range(48):
+			for y in range(12):
+				greetsMatrix[y][x] = tempMatrix[y][x]
+
+	for x in range(48):
+		for y in range(12):
+			matrix[y][x] = greetsMatrix[y][x]
 
 def drawStains(demoTime, frame):
 	for x in range(48):
@@ -508,6 +585,7 @@ def drawGrayscaleMatrix():
 
 preloadRotozoomer()
 preloadTestScroller()
+preloadGreets()
 
 demoTime = 0
 
@@ -533,7 +611,7 @@ while running:
 		# drawLogo2(demoTime, frame)
 		# drawLogo1(demoTime, frame)
 		# fadeScanlines(demoTime, frame, 64)
-		drawBitmask(demoTime, frame)
+		# drawBitmask(demoTime, frame)
 
 		# # drawRotozoomer(demoTime, frame)
 		# # #drawDizzyCircleTiles(demoTime, frame)
@@ -547,6 +625,8 @@ while running:
 		# # # # #drawTwister(demoTime, frame)
 
 		# # # # # #drawMetaballs(demoTime, frame)
+
+		drawGreets(demoTime, frame)
 
 		drawMatrix()
 		#drawGrayscaleMatrix()
