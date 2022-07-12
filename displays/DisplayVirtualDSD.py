@@ -4,6 +4,7 @@ from .Display import Display
 
 USE_HAX = True
 SCALE = 10
+SHOWDOTS = True
 
 class DisplayVirtualDSD(Display):
 	def __init__(self, title="Virtual Display Output"):
@@ -14,10 +15,12 @@ class DisplayVirtualDSD(Display):
 		self.bit_depth = 1
 		self.buffer = [[0]*self.height for x in range(self.width)]
 		self.max_fps = 10 if USE_HAX else 7.5 # Measured up to 10.5 fps with hax, 8.0 without
+		vfilt = "scale=480x120:flags=neighbor"
+		if SHOWDOTS:
+			vfilt = "scale=485x125,curves=all='0/0 .1/.2 .8/1',split[a][b];[b]boxblur=6,format=gbrp[b];[b][a]blend=all_mode=screen:shortest=1"
+		vsize = "97x25" if SHOWDOTS else "48x12"
 		command = ["ffmpeg","-loglevel","fatal","-hide_banner","-f","rawvideo","-pix_fmt","gray",
-			"-s","48x12","-framerate","30","-re","-i","-","-vf","scale=480x120:flags=neighbor",
-			"-pix_fmt","rgb24","-f","sdl",title]
-		print(" ".join(command))
+			"-s",vsize,"-framerate","30","-re","-i","-","-vf",vfilt,"-pix_fmt","rgb24","-f","sdl",title]
 		self.ffprocess = Popen(command, stdout=DEVNULL, stderr=DEVNULL, stdin=PIPE, bufsize=48*12//2)
 		print("Connected to virtual DSD display")
 		self.is_connected = True
@@ -36,8 +39,8 @@ class DisplayVirtualDSD(Display):
 		print("Disconnected")
 
 	async def prepare(self):
-		for x in range(self.width):
-			for y in range(self.height):
+		for x in range(48):
+			for y in range(12):
 				self.buffer[x][y] = 0
 
 	async def send(self, wait_response=False):
@@ -46,12 +49,13 @@ class DisplayVirtualDSD(Display):
 
 		ta = time.time()
 
-		bytes_out = [0]*(self.width*self.height)
-		p = 0
-		for y in range(self.height):
-			for x in range(self.width):
+		bytes_out = [0]*((97*25) if SHOWDOTS else (48*12))
+		p = 98 if SHOWDOTS else 0
+		for y in range(12):
+			for x in range(48):
 				bytes_out[p] = (self.buffer[x][y]*255)&255
-				p += 1
+				p += 2 if SHOWDOTS else 1
+			p += 98 if SHOWDOTS else 0
 
 		if self.ffprocess.poll() != None:
 			self.is_connected = False

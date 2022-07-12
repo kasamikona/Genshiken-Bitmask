@@ -123,3 +123,6 @@ class BadApple(kgfx.Effect):
 			for y in range(12):
 				for x in range(48):
 					out.buffer[x][y]=self.vbuffer[x][y]
+	
+	def cleanup(self):
+		self.vfile.close()

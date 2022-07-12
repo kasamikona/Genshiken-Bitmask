@@ -13,7 +13,10 @@ display=None
 async def rundemo():
 	global display,testscene
 	testscene=kgfx.SceneAnimator("test.story",[Checkerboard,Mirror,Genshiken,OverWobble,BadApple])
-	t_start=time.time()+1
+	try:
+		t_start = time.time()-float(sys.argv[1])
+	except (IndexError, ValueError):
+		t_start = time.time()+1
 	running=True
 	while running:
 		t=time.time()-t_start

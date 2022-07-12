@@ -17,5 +17,10 @@ loopend
 output 0
 anim 10 checker size 2 10 fast
 
-at 2:00 # delayed exit
+at 1:10
+loop
+loopend
+deleffect badapple
+
+at 1:30 # delayed exit
 stopmus

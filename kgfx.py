@@ -4,7 +4,6 @@ class Scene:
 	def __init__(self):
 		self.layers = {}
 		self.effects = {}
-		self.effects_tstart = {}
 		self.loop_actions = []
 		self.frame_count = 0
 		self.final_layer = None
@@ -33,7 +32,6 @@ class Scene:
 	def remove_effect(self, name_effect):
 		if name_effect in self.effects:
 			self.effects.pop(name_effect).cleanup()
-			del self.effects_tstart[name_effect]
 
 	def clear_effects(self):
 		for name_effect in self.effects:
@@ -136,7 +134,7 @@ class SceneAnimator:
 			print("t = %.1f" % t)
 		self.last_update = t
 		while t >= self.time_waiting:
-			if not self._process_next(self.time_waiting):
+			if not self._process_next(self.time_waiting, t):
 				break
 		return True
 
@@ -175,23 +173,23 @@ class SceneAnimator:
 		except ValueError:
 			return 0
 
-	def _process_next(self, at_time):
+	def _process_next(self, at_time, process_time):
 		current_offset = self.story_file.tell()
 		line = self.story_file.readline()
 		if line == "": #EOF
 			self.cleanup()
 			return False
 		tokens = shlex.split(line.strip(), comments=True, posix=True)
-		return self._process_tokens(tokens, at_time)
+		return self._process_tokens(tokens, at_time, process_time)
 
-	def _process_tokens(self, tokens, at_time):
+	def _process_tokens(self, tokens, at_time, process_time):
 		if len(tokens) == 0:
 			return True
 		if self.sub_parser == "loop":
-			return self._process_tokens_loop(tokens, at_time)
-		return self._process_tokens_normal(tokens, at_time)
+			return self._process_tokens_loop(tokens, at_time, process_time)
+		return self._process_tokens_normal(tokens, at_time, process_time)
 
-	def _process_tokens_normal(self, tokens, at_time):
+	def _process_tokens_normal(self, tokens, at_time, process_time):
 		command = tokens.pop(0).lower()
 		if command == "at":
 			waittime = self._parse_time(tokens.pop(0))
@@ -200,12 +198,10 @@ class SceneAnimator:
 				return False
 		elif command == "playmus":
 			musfile = tokens.pop(0)
-			print(tokens)
 			seek = 0
 			if len(tokens) > 0:
 				seek = self._parse_time(tokens.pop(0))
-				print(seek)
-			self.scene.play_music(musfile, seek, False)
+			self.scene.play_music(musfile, seek+process_time-at_time, False)
 		elif command == "stopmus":
 			self.scene.stop_music()
 		elif command == "clreffects":
@@ -258,7 +254,7 @@ class SceneAnimator:
 
 		return True
 
-	def _process_tokens_loop(self, tokens, at_time):
+	def _process_tokens_loop(self, tokens, at_time, process_time):
 		if tokens[0].lower() == "loopend":
 			self.sub_parser = None
 			return True
