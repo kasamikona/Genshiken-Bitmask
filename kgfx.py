@@ -18,11 +18,12 @@ class Scene:
 			return self.layers[self.final_layer]
 
 	def oneshot(self, index_out, name_effect, indexes_ins, t_global):
-		effect = self.effects[name_effect]
-		t_effect = t_global - self.effects[name_effect].tstart
-		out = self.layers[index_out]
-		ins = [self.layers[x] for x in indexes_ins]
-		effect.render(out, ins, t_global, self.frame_count, t_effect)
+		if name_effect in self.effects:
+			effect = self.effects[name_effect]
+			t_effect = t_global - self.effects[name_effect].tstart
+			out = self.layers[index_out]
+			ins = [self.layers[x] for x in indexes_ins]
+			effect.render(out, ins, t_global, self.frame_count, t_effect)
 
 	def add_effect(self, name_effect, effectclass, tstart=0):
 		self.remove_effect(name_effect)
@@ -184,14 +185,13 @@ class SceneAnimator:
 		return self._process_tokens(tokens, at_time)
 
 	def _process_tokens(self, tokens, at_time):
+		if len(tokens) == 0:
+			return True
 		if self.sub_parser == "loop":
 			return self._process_tokens_loop(tokens, at_time)
 		return self._process_tokens_normal(tokens, at_time)
 
 	def _process_tokens_normal(self, tokens, at_time):
-		if len(tokens) == 0:
-			return True
-
 		command = tokens.pop(0).lower()
 		if command == "at":
 			waittime = self._parse_time(tokens.pop(0))

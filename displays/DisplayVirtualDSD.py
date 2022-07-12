@@ -21,7 +21,7 @@ class DisplayVirtualDSD(Display):
 		self.height = 12
 		self.color = False
 		self.bit_depth = 1
-		self.buffer = self.buffer = [[0]*self.height for x in range(self.width)]
+		self.buffer = [[0]*self.height for x in range(self.width)]
 		self.max_fps = 10 if USE_HAX else 7.5 # Measured up to 10.5 fps with hax, 8.0 without
 		command = [ffplay_cmd,"-hide_banner","-exitonkeydown","-exitonmousedown","-window_title",title,
 			"-f","rawvideo","-pixel_format","gray","-s","48x12",
