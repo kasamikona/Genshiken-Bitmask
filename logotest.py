@@ -99,11 +99,11 @@ def map(x, in_a, in_b, out_a, out_b):
 	return lerp(out_a, out_b, (x-in_a)/(in_b-in_a))
 
 async def run():
-	display = await ledmask.find_and_connect(classes=USE_CLASSES)
+	display = await ledmask.find_and_connect(classes=USE_CLASSES,dispargs={"title":"Bitmask  :  Genshiken 2022  :  Virtual Display Mode"})
 	if not display:
 		return
 	await logo(display)
 	await display.disconnect()
 
-loop = asyncio.get_event_loop()
+loop = asyncio.new_event_loop()
 loop.run_until_complete(run())

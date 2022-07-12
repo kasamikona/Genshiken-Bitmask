@@ -64,8 +64,9 @@ class DisplayVirtualDSD(Display):
 		self.ffprocess.stdin.write(bytes(bytes_out))
 
 		tb = time.time()
-		twait = (1/self.max_fps) - (tb-ta)
-		if twait > 0 and wait_response:
+		waitfps = 7.5 if wait_response else 10
+		twait = (1/waitfps) - (tb-ta)
+		if twait > 0:
 			await asyncio.sleep(twait)
 
 	async def wait_for_finish(self):
