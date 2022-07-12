@@ -1,18 +1,9 @@
-from .Display import Display
-import asyncio
+import os,time,math,asyncio
 from subprocess import Popen, PIPE, DEVNULL
-
-import os
-#os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-#import pygame
-
-import time
-import math
+from .Display import Display
 
 USE_HAX = True
 SCALE = 10
-
-ffplay_cmd = "ffplay" # Assume it's on path and executable
 
 class DisplayVirtualDSD(Display):
 	def __init__(self, title="Virtual Display Output"):
@@ -23,10 +14,11 @@ class DisplayVirtualDSD(Display):
 		self.bit_depth = 1
 		self.buffer = [[0]*self.height for x in range(self.width)]
 		self.max_fps = 10 if USE_HAX else 7.5 # Measured up to 10.5 fps with hax, 8.0 without
-		command = [ffplay_cmd,"-hide_banner","-exitonkeydown","-exitonmousedown","-window_title",title,
-			"-f","rawvideo","-pixel_format","gray","-s","48x12",
-			"-framerate","60","-vf","scale=480x120:flags=neighbor","-"]
-		self.ffprocess = Popen(command, stdout=DEVNULL, stderr=DEVNULL, stdin=PIPE, bufsize=48*12)
+		command = ["ffmpeg","-loglevel","fatal","-hide_banner","-f","rawvideo","-pix_fmt","gray",
+			"-s","48x12","-framerate","30","-re","-i","-","-vf","scale=480x120:flags=neighbor",
+			"-pix_fmt","rgb24","-f","sdl",title]
+		print(" ".join(command))
+		self.ffprocess = Popen(command, stdout=DEVNULL, stderr=DEVNULL, stdin=PIPE, bufsize=48*12//2)
 		print("Connected to virtual DSD display")
 		self.is_connected = True
 

@@ -99,21 +99,26 @@ class BadApple(kgfx.Effect):
 	def __init__(self, tstart):
 		super().__init__(tstart)
 		self.vfile=gzip.open("ba.gz","rb")
-		self.filefps=30.1
+		self.filefps=30.15
 		self.filenumf=2340
 		self.lastframe=-1
 		self.vbuffer=[[0]*12 for x in range(48)]
 
 	def render(self, out, ins, t, t_global, t_frame):
 		wantframe=math.floor(t*self.filefps)
-		if wantframe>=0 and wantframe<self.filenumf and wantframe!=self.lastframe:
-			self.vfile.seek(72*wantframe)
-			ndat=self.vfile.read(72)
-			bit=0
-			for y in range(12):
-				for x in range(48):
-					out.buffer[x][y]=self.vbuffer[x][y]=(ndat[bit>>3]>>(7-(bit&7)))&1
-					bit+=1
+		if wantframe!=self.lastframe:
+			if wantframe>=0 and wantframe<self.filenumf:
+				self.vfile.seek(72*wantframe)
+				ndat=self.vfile.read(72)
+				bit=0
+				for y in range(12):
+					for x in range(48):
+						out.buffer[x][y]=self.vbuffer[x][y]=(ndat[bit>>3]>>(7-(bit&7)))&1
+						bit+=1
+			else:
+				for y in range(12):
+					for x in range(48):
+						out.buffer[x][y]=0
 		else:
 			for y in range(12):
 				for x in range(48):

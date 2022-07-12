@@ -53,10 +53,10 @@ class Scene:
 			self.layers[name_layer].cleanup()
 		self.layers.clear()
 
-	def play_music(self, filename, loop=False):
+	def play_music(self, filename, seek, loop):
 		if self.music:
 			self.music.stop()
-		self.music = Music(filename, loop)
+		self.music = Music(filename, seek, loop)
 
 	def stop_music(self):
 		if self.music:
@@ -91,8 +91,8 @@ class Effect:
 
 from subprocess import Popen, PIPE, DEVNULL
 class Music:
-	def __init__(self, filename, loop=False):
-		self.command = ["ffplay","-nodisp","-hide_banner","-flags","low_delay","-loop",("0" if loop else "1"),filename]
+	def __init__(self, filename, seek=0, loop=False):
+		self.command = ["ffplay","-nodisp","-hide_banner","-flags","low_delay","-loop",("0" if loop else "1"),"-ss",str(seek),filename]
 		self.mproc = Popen(self.command, stdout=DEVNULL, stderr=DEVNULL, stdin=DEVNULL)
 
 	def stop(self):
@@ -151,8 +151,8 @@ class SceneAnimator:
 
 	def _parse_time(self, s):
 		# seconds or minutes:seconds
-		# beats,bpm or bars:beats,bpm (4 beats per bar)
-		# bars:beats,bpm,n (n beats per bar)
+		# beats/bpm or bars:beats,bpm (4 beats per bar)
+		# bars:beats/bpm/n (n beats per bar)
 		# minutes and bars must be integers, seconds and beats can have decimals.
 		parts = s.split("/")
 		if len(parts) == 0:
@@ -167,7 +167,7 @@ class SceneAnimator:
 			scale = 1
 			mins_ratio = 60 # 60 seconds : 1 minute
 			if len(parts) > 1:
-				scale = 60/int(parts[1]) # beats per minute -> seconds per beat
+				scale = 60/float(parts[1]) # beats per minute -> seconds per beat
 				mins_ratio = 4 # 4 beats : 1 bar
 				if len(parts) > 2:
 					mins_ratio = int(parts[2]) # n beats : 1 bar
@@ -200,7 +200,12 @@ class SceneAnimator:
 				return False
 		elif command == "playmus":
 			musfile = tokens.pop(0)
-			self.scene.play_music(musfile)
+			print(tokens)
+			seek = 0
+			if len(tokens) > 0:
+				seek = self._parse_time(tokens.pop(0))
+				print(seek)
+			self.scene.play_music(musfile, seek, False)
 		elif command == "stopmus":
 			self.scene.stop_music()
 		elif command == "clreffects":
