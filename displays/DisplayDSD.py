@@ -102,7 +102,9 @@ class DisplayDSD(Display):
 			print("Connected to %s" % (address))
 			return disp
 		except (BleakError,OSError) as e:
-			await self._disconnect_errored(e)
+			print("Disconnected due to error")
+			print(e)
+			await client.disconnect()
 			return None
 
 	async def disconnect(self):
@@ -162,7 +164,7 @@ class DisplayDSD(Display):
 				bv += bv
 				if (i*8)+j < self.num_bits:
 					map = self.bit_remap[(i*8)+j]
-					bv += (self.buffer[map[0]][map[1]] >> map[2]) & 1
+					bv += ((1 if self.buffer[map[0]][map[1]] >= 0.5 else 0) >> map[2]) & 1
 			out_bytes[i] = bv
 		return out_bytes
 

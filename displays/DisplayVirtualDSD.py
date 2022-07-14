@@ -4,7 +4,7 @@ from .Display import Display
 
 USE_HAX = True
 SCALE = 10
-SHOWDOTS = True
+SHOWDOTS = False
 
 class DisplayVirtualDSD(Display):
 	def __init__(self, title="Virtual Display Output"):
@@ -51,9 +51,10 @@ class DisplayVirtualDSD(Display):
 
 		bytes_out = [0]*((97*25) if SHOWDOTS else (48*12))
 		p = 98 if SHOWDOTS else 0
+
 		for y in range(12):
 			for x in range(48):
-				bytes_out[p] = (self.buffer[x][y]*255)&255
+				bytes_out[p] = ((1 if self.buffer[x][y]>=0.5 else 0)*255)&255
 				p += 2 if SHOWDOTS else 1
 			p += 98 if SHOWDOTS else 0
 
@@ -64,7 +65,7 @@ class DisplayVirtualDSD(Display):
 		self.ffprocess.stdin.write(bytes(bytes_out))
 
 		tb = time.time()
-		waitfps = 7.5 if wait_response else 10
+		waitfps = 10 if wait_response else 10.5
 		twait = (1/waitfps) - (tb-ta)
 		if twait > 0:
 			await asyncio.sleep(twait)

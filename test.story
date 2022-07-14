@@ -1,26 +1,25 @@
 KGFX 0.1
-# Test story
-at 0:0/125
-playmus bitmask.mp3 272/138.69
-addeffect badapple BadApple
-addeffect checker Checkerboard $size=5 $speed=1 $distx=10 $disty=8
-addeffect mirror Mirror $speed=1 $dist=1
-addeffect gsklogo Genshiken
-addeffect gskwobble OverWobble $wobble=0
-addlayer 0 48 12
-addlayer 1 48 12
-addlayer 2 43 6
-draw 2 gsklogo
-loop
-	0 badapple
-loopend
-output 0
-anim 10 checker size 2 10 fast
+# Bitmask
+# (c) Genshiken 2022
+# Released at Euskal Encounter 30 Wild Compo
 
-at 1:10
+addlayer out 48 12
+output out
+addeffect clear ClearBuffer
+
+at 0
+playmus bitmask.mp3 0 # 138.69 BPM 16 beats per pattern
+addeffect greets Greets
+addeffect life Life
+set greets name="ACHIFAIFA"
+draw out greets
 loop
 loopend
-deleffect badapple
 
-at 1:30 # delayed exit
+at +8/138.69
+loop
+	out life
+loopend
+
+at 30 # delayed exit
 stopmus

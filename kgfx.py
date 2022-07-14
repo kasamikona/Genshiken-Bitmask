@@ -22,7 +22,7 @@ class Scene:
 			t_effect = t_global - self.effects[name_effect].tstart
 			out = self.layers[index_out]
 			ins = [self.layers[x] for x in indexes_ins]
-			effect.render(out, ins, t_global, self.frame_count, t_effect)
+			effect.render(out, ins, t_effect, t_global, self.frame_count)
 
 	def add_effect(self, name_effect, effectclass, tstart=0):
 		self.remove_effect(name_effect)
@@ -118,28 +118,40 @@ class SceneAnimator:
 			print("Wrong story version! code ver %s, file ver %s" % (STORY_VERSION, filever))
 			self.cleanup()
 
-	def update(self, t):
-		if self.ended:
-			return False
-
+	def _apply_curves(self, t):
 		for i in reversed(range(len(self.curves))):
 			curve = self.curves[i]
 			curve.apply(self.scene, t)
 			if curve.is_finished(t):
 				del self.curves[i]
 
-		if t < 0 or self.time_waiting < 0:
+	def update(self, t):
+		if self.ended:
+			return False
+		try:
+			self._apply_curves(t) # before old ones removed
+			if t < 0 or self.time_waiting < 0:
+				return True
+			if self.time_stdout > 0 and (t//self.time_stdout) > (self.last_update//self.time_stdout):
+				print("t = %d" % int(t))
+			self.last_update = t
+			while t >= self.time_waiting:
+				if not self._process_next(self.time_waiting, t):
+					break
+			self._apply_curves(t) # after new ones added
 			return True
-		if self.time_stdout > 0 and (t//self.time_stdout) > (self.last_update//self.time_stdout):
-			print("t = %.1f" % t)
-		self.last_update = t
-		while t >= self.time_waiting:
-			if not self._process_next(self.time_waiting, t):
-				break
-		return True
+		except Exception as e:
+			self.cleanup()
+			raise(e)
+		return None
 
 	def render(self, t):
-		return self.scene.render(t)
+		try:
+			return self.scene.render(t)
+		except Exception as e:
+			self.cleanup()
+			raise(e)
+		return None
 
 	def cleanup(self):
 		if not self.ended:
@@ -192,10 +204,16 @@ class SceneAnimator:
 	def _process_tokens_normal(self, tokens, at_time, process_time):
 		command = tokens.pop(0).lower()
 		if command == "at":
-			waittime = self._parse_time(tokens.pop(0))
+			timespec = tokens.pop(0)
+			relative = timespec.startswith("+")
+			if relative:
+				timespec = timespec[1:]
+			waittime = self._parse_time(timespec)
+			if relative:
+				waittime += at_time
 			if waittime > at_time:
 				self.time_waiting = waittime
-				return False
+				#return False
 		elif command == "playmus":
 			musfile = tokens.pop(0)
 			seek = 0
@@ -247,7 +265,7 @@ class SceneAnimator:
 			shape = "linear"
 			if len(tokens) > 0:
 				shape = tokens.pop(0)
-			self.curves.append(ParameterCurve(at_time, duration, effect, parameter, y0, y1, shape))
+			self.curves.insert(0,ParameterCurve(at_time, duration, effect, parameter, y0, y1, shape))
 		else:
 			print("Unknown story command:", command)
 			return True

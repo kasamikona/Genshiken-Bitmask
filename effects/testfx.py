@@ -40,27 +40,6 @@ class Mirror(kgfx.Effect):
 			for y in range(out.height):
 				outbuf[x][y] = inbuf[sampx][y]
 
-class Genshiken(kgfx.Effect):
-	def __init__(self, tstart):
-		super().__init__(tstart)
-		self.imagedata = [ \
-			[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,2], \
-			[0,0,1,1,1,0,0,1,1,0,0,1,1,1,0,0,0,1,1,1,0,1,0,0,0,0,1,0,1,0,1,0,0,0,1,1,0,0,1,1,1,0,0], \
-			[0,1,0,0,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,1,0,0,1,0,1,0,0,1,0], \
-			[0,1,0,0,1,0,1,1,1,1,0,1,0,0,1,0,0,0,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,1,1,1,1,0,1,0,0,1,0], \
-			[0,0,1,1,1,0,0,1,0,0,0,1,0,0,1,0,1,1,1,0,0,1,0,0,1,0,1,0,1,0,0,1,0,0,1,0,0,0,1,0,0,1,0], \
-			[2,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0], \
-		]
-
-	def render(self, out, ins, t, t_global, t_frame):
-		for x in range(43):
-			if x>=out.width:
-				continue
-			for y in range(6):
-				if y>=out.height:
-					continue
-				p = self.imagedata[y][x]
-				out.buffer[x][y] = p
 
 class OverWobble(kgfx.Effect):
 	def __init__(self, tstart):
