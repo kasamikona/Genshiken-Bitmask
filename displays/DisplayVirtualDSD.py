@@ -4,7 +4,7 @@ from .Display import Display
 
 USE_HAX = True
 SCALE = 10
-SHOWDOTS = False
+SHOWDOTS = True
 
 class DisplayVirtualDSD(Display):
 	def __init__(self, title="Virtual Display Output"):
