@@ -141,17 +141,17 @@ loop
 	dropf meatballs
 	out dropdown out dropf
 loopend
-anim 0:2/138.69 dropdown fraction 0 1 slow
+anim 2/138.69 dropdown fraction 0 1 slow
 
 at 25:2/138.69
-anim 0:1/138.69 dropdown fraction 1 0.6 fast
+anim 1/138.69 dropdown fraction 1 0.6 fast
 at 25:3/138.69
-anim 0:1/138.69 dropdown fraction 0.6 1 slow
+anim 1/138.69 dropdown fraction 0.6 1 slow
 
 at 26:0/138.69
-anim 0:1/138.69 dropdown fraction 1 0.8 fast
+anim 1/138.69 dropdown fraction 1 0.8 fast
 at 26:1/138.69
-anim 0:1/138.69 dropdown fraction 0.8 1 slow
+anim 1/138.69 dropdown fraction 0.8 1 slow
 
 at 26:2/138.69
 deleffect rotoz
@@ -180,7 +180,6 @@ at 42:2/138.69
 loop
 	out gol
 loopend
-
 at 43:0/138.69
 set greets name="COLLAPSE"
 loop
@@ -190,7 +189,6 @@ at 43:2/138.69
 loop
 	out gol
 loopend
-
 at 44:0/138.69
 set greets name="LFT"
 loop
@@ -200,7 +198,6 @@ at 44:2/138.69
 loop
 	out gol
 loopend
-
 at 45:0/138.69
 set greets name="GARGAJ"
 loop
@@ -210,7 +207,6 @@ at 45:2/138.69
 loop
 	out gol
 loopend
-
 at 46:0/138.69
 set greets name="IMOBILIS"
 loop
@@ -220,7 +216,6 @@ at 46:2/138.69
 loop
 	out gol
 loopend
-
 at 47:0/138.69
 set greets name="MARCAN"
 loop
@@ -230,7 +225,6 @@ at 47:2/138.69
 loop
 	out gol
 loopend
-
 at 48:0/138.69
 set greets name="SNS"
 loop
@@ -240,7 +234,6 @@ at 48:2/138.69
 loop
 	out gol
 loopend
-
 at 49:0/138.69
 set greets name="SOGA"
 loop
@@ -262,7 +255,7 @@ loopend
 at 57:0/138.69
 addeffect twist Twister
 addlayer wipeto 48 12
-addeffect wipetwister Wipe line=false
+addeffect wipetwister Wipe
 loop
 	out stains
 	wipeto twist
@@ -276,6 +269,7 @@ loop
 	out twist
 	out wipetwister out nothing
 loopend
+set wipetwister line=false
 anim 1:0/138.69 wipetwister fraction 0 1 slow
 
 at 66:0/138.69
@@ -316,6 +310,7 @@ set badtext name="RIGHT?"
 
 at 70:0/138.69
 deleffect badtext
+deleffect tscanline
 loop
 	out apple
 loopend
@@ -345,6 +340,7 @@ anim 1:2/138.69 fscanline fraction 0 1
 
 at 116:0/138.69
 deleffect fscanline
+deleffect genshiken
 loop
 	out clear
 loopend

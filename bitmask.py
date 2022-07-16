@@ -18,7 +18,7 @@ display=None
 
 async def rundemo():
 	global display,testscene
-	testscene=kgfx.SceneAnimator("test.story",[ClearBuffer,GenshikenLogo,
+	testscene=kgfx.SceneAnimator("demo.story",[ClearBuffer,GenshikenLogo,
 		FadeDither,FadeScanlines,BitmaskLogo,Stains,RegularPolygon,Metaballs,
 		Scroller,Rotozoomer,Greets,Life,Twister,BadApple,Wipe,DropDown])
 	display.clear()
