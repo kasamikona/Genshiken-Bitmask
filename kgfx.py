@@ -118,12 +118,9 @@ class SceneAnimator:
 			print("Wrong story version! code ver %s, file ver %s" % (STORY_VERSION, filever))
 			self.cleanup()
 
-	def _apply_curves(self, t, post=False):
+	def _apply_curves(self, t):
 		for i in reversed(range(len(self.curves))):
 			curve = self.curves[i]
-			if post and curve.is_finished(t):
-				del self.curves[i]
-				continue
 			curve.apply(self.scene, t)
 			if curve.is_finished(t):
 				del self.curves[i]
@@ -132,7 +129,6 @@ class SceneAnimator:
 		if self.ended:
 			return False
 		try:
-			self._apply_curves(t, False) # before old ones removed
 			if t < 0 or self.time_waiting < 0:
 				return True
 			if self.time_stdout > 0 and (t//self.time_stdout) > (self.last_update//self.time_stdout):
@@ -141,7 +137,7 @@ class SceneAnimator:
 			while t >= self.time_waiting:
 				if not self._process_next(self.time_waiting, t):
 					break
-			self._apply_curves(t, True) # after new ones added
+			self._apply_curves(t)
 			return True
 		except Exception as e:
 			self.cleanup()

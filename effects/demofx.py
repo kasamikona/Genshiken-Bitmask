@@ -254,33 +254,18 @@ class BitmaskLogo(kgfx.Effect):
 class Rotozoomer(kgfx.Effect):
 	def __init__(self, tstart):
 		super().__init__(tstart)
+		self.parameters["dizziness"] = 0
 
 	def render(self, out, ins, t, t_global, t_frame):
 		# from dev.drawRotozoomer
 		angle = t / 1.5
+		dizzyX = self.parameters["dizziness"]*48
+		dizzyY = self.parameters["dizziness"]*12
 		for x in range(48):
 			for y in range(12):
 				xOffset = x - 24
 				yOffset = y - 6
-				trigParam = math.atan2(yOffset, xOffset) + angle
-				hypoParam = math.sqrt(yOffset * yOffset + xOffset * xOffset)
-				mappedY = round((math.sin(trigParam) * hypoParam) * math.sin(t / 5))
-				mappedX = round((math.cos(trigParam) * hypoParam) * math.sin(t / 5))
-				out.buffer[x][y] = (mappedX % 8 < 4) ^ (mappedY % 8 >= 4)
-
-class DizzyCircleTiles(kgfx.Effect):
-	def __init__(self, tstart):
-		super().__init__(tstart)
-
-	def render(self, out, ins, t, t_global, t_frame):
-		# from dev.drawDizzyCircleTiles
-		# ONLY DIFFERENCE FROM ROTOZOOMER IS ATAN2 OFFSETS, PARAMETERIZE?
-		angle = t / 1.5
-		for x in range(48):
-			for y in range(12):
-				xOffset = x - 24
-				yOffset = y - 6
-				trigParam = math.atan2(yOffset+12, xOffset+48) + angle
+				trigParam = math.atan2(yOffset+dizzyY, xOffset+dizzyX) + angle
 				hypoParam = math.sqrt(yOffset * yOffset + xOffset * xOffset)
 				mappedY = round((math.sin(trigParam) * hypoParam) * math.sin(t / 5))
 				mappedX = round((math.cos(trigParam) * hypoParam) * math.sin(t / 5))
@@ -289,39 +274,45 @@ class DizzyCircleTiles(kgfx.Effect):
 class RegularPolygon(kgfx.Effect):
 	def __init__(self, tstart):
 		super().__init__(tstart)
+		self.parameters["sides"] = 3
+		self.parameters["size"] = 1
+		self.parameters["cx"] = 24
+		self.parameters["cy"] = 6
+		self.parameters["speed"] = 2
 
 	def render(self, out, ins, t, t_global, t_frame):
-		clearBuffer(out.buffer)
 		# from dev.drawRegularPolygon
 		points = []
-		sides = 3
-		if t > 18:
-			sides = 5
-		if t < 6:
-			param = 1
-		elif t < 17:
-			param = math.cos(math.pi + (t - 6)) + 2
-			if t >= 15:
-				param = param * (17 - t) / 2
-		elif t < 18:
-			param = 0
-		else: 
-			param = math.cos(math.pi + (t - 18) * 2) + 1
+		sides = round(self.parameters["sides"])
+		size = abs(self.parameters["size"])
+		cx = self.parameters["cx"]
+		cy = self.parameters["cy"]
+		speed = self.parameters["speed"]
 		for i in range(sides):
-			x = int(math.cos(2 * math.pi * (i / sides) + t * 2) * 6 * param + 24)
-			y = int(math.sin(2 * math.pi * (i / sides) + t * 2) * 6 * param + 6)
+			x = int(math.cos(2 * math.pi * (i / sides) + t * speed) * 6 * size) + cx
+			y = int(math.sin(2 * math.pi * (i / sides) + t * speed) * 6 * size) + cy
 			points.append([int(x), int(y)])
+		if len(ins) > 0:
+			for x in range(48):
+				for y in range(12):
+					inside = True
+					for i in range(sides):
+						v1 = points[i]
+						v2 = points[(i+1)%sides]
+						inside &= ((x - v2[0]) * (v1[1] - v2[1]) - (v1[0] - v2[0]) * (y - v2[1])) > 0;
+					if inside:
+						out.buffer[x][y] = ins[0].buffer[x][y]
 		drawPolygon(out.buffer, points)
 
 class Scroller(kgfx.Effect):
 	def __init__(self, tstart):
 		super().__init__(tstart)
 		self.options["text"] = "lorem ipsum"
+		self.parameters["speed"] = 15
 
 	def render(self, out, ins, t, t_global, t_frame):
-		clearBuffer(out.buffer)
 		# from dev.drawTestScroller
-		scrollerXOffset = 48 - int(t * 20)
+		scrollerXOffset = 48 - int(t * self.parameters["speed"])
 		for charascii in self.options["text"]:
 			char = charset5[ord(charascii)] or charset5[ord(charascii.upper())] or charset5[32]
 			if scrollerXOffset + len(char[0]) >= 0:
@@ -358,11 +349,9 @@ class Twister(kgfx.Effect):
 	def render(self, out, ins, t, t_global, t_frame):
 		clearBuffer(out.buffer)
 		# from dev.drawTwister
-		param = 0
 		for col in range(48):
-			if t > 5:
-				colsin = col * math.sin(t)
-				param = math.sin(t) + (math.sin(t * 2.5) * math.sin(t * 1.5)) + (math.sin((colsin / 24.0)) * (math.pow(colsin / 10.0, 2) / 10.0))
+			colsin = col * math.cos(t)
+			param = math.sin(t) + (math.sin(t * 2.5) * math.sin(t * 1.5)) + (math.sin((colsin / 24.0)) * (math.pow(colsin / 10.0, 2) / 10.0))
 			angle1 = (t + param) % (2 * math.pi)
 			angle2 = (angle1 + math.pi * 0.5) % (2 * math.pi)
 			angle3 = (angle1 + math.pi) % (2 * math.pi)
@@ -396,12 +385,12 @@ class Twister(kgfx.Effect):
 				for row in range(rowRightmostVertex - rowVertex1):
 					pixelColor = (cosList[vertex1] + (cosList[indexRightmostVertex] - cosList[vertex1]) * (row / (rowRightmostVertex - rowVertex1)) + 1.0) / 2.0
 					if checkDrawOutOfBounds(col, rowVertex1 + row):
-						out.buffer[col][rowVertex1 + row] = max(pixelColor, 0.0)**2
+						out.buffer[col][rowVertex1 + row] = max(pixelColor * 1.1, 0.0)**2
 			elif rowVertex1 > rowRightmostVertex:
 				for row in range(rowVertex1 - rowRightmostVertex):
 					pixelColor = (cosList[vertex1] + (cosList[indexRightmostVertex] - cosList[vertex1]) * (((rowVertex1 - rowRightmostVertex) - row) / (rowRightmostVertex - rowVertex1)) + 1.0) / 2.0
 					if checkDrawOutOfBounds(col, rowRightmostVertex + row):
-						out.buffer[col][rowRightmostVertex + row] = max(pixelColor, 0.0)**2
+						out.buffer[col][rowRightmostVertex + row] = max(pixelColor * 1.1, 0.0)**2
 
 			#Draw a line from the rightmost vertex to the last one
 			vertex2 = 1
@@ -413,12 +402,12 @@ class Twister(kgfx.Effect):
 				for row in range(rowRightmostVertex - rowVertex2):
 					pixelColor = (cosList[vertex2] + (cosList[indexRightmostVertex] - cosList[vertex2]) * (row / (rowRightmostVertex - rowVertex2)) + 1.0) /2.0
 					if checkDrawOutOfBounds(col, rowVertex2 + row):
-						out.buffer[col][rowVertex2 + row] = max(pixelColor, 0.0)**2
+						out.buffer[col][rowVertex2 + row] = max(pixelColor * 1.1, 0.0)**2
 			elif rowVertex2 > rowRightmostVertex:
 				for row in range(rowVertex2 - rowRightmostVertex):
 					pixelColor = (cosList[vertex2] + (cosList[indexRightmostVertex] - cosList[vertex2]) * (((rowVertex2 - rowRightmostVertex) - row) / (rowRightmostVertex - rowVertex2)) + 1.0) / 2.0
 					if checkDrawOutOfBounds(col, rowRightmostVertex + row):
-						out.buffer[col][rowRightmostVertex + row] = max(pixelColor, 0.0)**2
+						out.buffer[col][rowRightmostVertex + row] = max(pixelColor * 1.1, 0.0)**2
 
 		dithering(out.buffer)
 
@@ -428,12 +417,12 @@ class Metaballs(kgfx.Effect):
 		self.lastTime = None
 		self.metaballs = []
 		numMetaballs = 4
-		random.seed(0x20220714)
+		random.seed(0x2022EE30)
 		for ball in range(numMetaballs):
 			self.metaballs.append({
 				"x": random.uniform(0, 48),
 				"y": random.uniform(0, 12),
-				"r": random.uniform(5, 15),
+				"r": random.uniform(4, 10),
 				"vx": random.choice([1,-1])*random.uniform(2,4),
 				"vy": random.choice([1,-1])*random.uniform(1,2)
 			})
@@ -496,7 +485,7 @@ class Greets(kgfx.Effect):
 			char = charset5[ord(charascii)] or charset5[ord(charascii.upper())] or charset5[32]
 			width += len(char[0]) - 1
 			chars.append(char)
-		greetXOffset = math.floor(24 - (width / 2)) - 1
+		greetXOffset = math.floor(24 - (width / 2) - 0.5)
 		greetYOffset = 2
 		for indexChar, char in enumerate(chars):
 			if greetXOffset + len(char[0]) >= 0:
@@ -624,7 +613,46 @@ class FadeDither(kgfx.Effect):
 
 	def render(self, out, ins, t, t_global, t_frame):
 		fraction = self.parameters["fraction"]
+		fadefrom = ins[0].buffer
 		for x in range(48):
 			for y in range(12):
-				out.buffer[x][y] *= 1-fraction
+				out.buffer[x][y] = fadefrom[x][y] * (1-fraction)
 		dithering(out.buffer)
+
+class Wipe(kgfx.Effect):
+	def __init__(self, tstart):
+		super().__init__(tstart)
+		self.parameters["fraction"] = 0
+		self.options["line"] = "true"
+
+	def render(self, out, ins, t, t_global, t_frame):
+		showline = (self.options["line"].lower() == "true")
+		splitcol = round((1-self.parameters["fraction"])*(49 if showline else 48))-(1 if showline else 0)
+		wleft = ins[0].buffer
+		wright = ins[1].buffer
+		for x in range(48):
+			for y in range(12):
+				if x < splitcol:
+					out.buffer[x][y] = wleft[x][y]
+				elif x == splitcol and showline:
+					out.buffer[x][y] = 1
+				else:
+					out.buffer[x][y] = wright[x][y]
+
+class DropDown(kgfx.Effect):
+	def __init__(self, tstart):
+		super().__init__(tstart)
+		self.parameters["fraction"] = 0
+
+	def render(self, out, ins, t, t_global, t_frame):
+		drop = -round((1-self.parameters["fraction"])*13)
+		back = ins[0].buffer
+		front = ins[1].buffer
+		for x in range(48):
+			for y in range(12):
+				if y-drop >= 0 and y-drop < 12:
+					out.buffer[x][y] = front[x][y-drop]
+				elif y-drop == 12:
+					out.buffer[x][y] = 1
+				else:
+					out.buffer[x][y] = back[x][y]

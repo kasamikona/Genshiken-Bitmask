@@ -21,7 +21,7 @@ class DisplayVirtualDSD(Display):
 		vsize = "97x25" if SHOWDOTS else "48x12"
 		command = ["ffmpeg","-loglevel","fatal","-hide_banner","-f","rawvideo","-pix_fmt","gray",
 			"-s",vsize,"-framerate","30","-re","-i","-","-vf",vfilt,"-pix_fmt","rgb24","-f","sdl",title]
-		self.ffprocess = Popen(command, stdout=DEVNULL, stderr=DEVNULL, stdin=PIPE, bufsize=48*12//2)
+		self.ffprocess = Popen(command, stdout=DEVNULL, stderr=DEVNULL, stdin=PIPE, bufsize=(485 if SHOWDOTS else 288))
 		print("Connected to virtual DSD display")
 		self.is_connected = True
 

@@ -9,14 +9,18 @@ USE_ADDRESSES=[
 	#"00:2A:EC:00:A0:D6",
 ]
 
-from effects.demofx import ClearBuffer,GenshikenLogo,FadeDither,FadeScanlines,BitmaskLogo,Scroller
+from effects.demofx import ClearBuffer,GenshikenLogo,FadeDither,FadeScanlines,\
+	BitmaskLogo,Stains,RegularPolygon,Metaballs,Scroller,Rotozoomer,Greets,\
+	Life,Twister,BadApple,Wipe,DropDown
 
 testscene=None
 display=None
 
 async def rundemo():
 	global display,testscene
-	testscene=kgfx.SceneAnimator("test.story",[ClearBuffer,GenshikenLogo,FadeDither,FadeScanlines,BitmaskLogo,Scroller])
+	testscene=kgfx.SceneAnimator("test.story",[ClearBuffer,GenshikenLogo,
+		FadeDither,FadeScanlines,BitmaskLogo,Stains,RegularPolygon,Metaballs,
+		Scroller,Rotozoomer,Greets,Life,Twister,BadApple,Wipe,DropDown])
 	display.clear()
 	await display.send(True)
 	await display.send(True)
