@@ -88,9 +88,10 @@ class Effect:
 		pass
 
 from subprocess import Popen, PIPE, DEVNULL
+import shutil
 class Music:
 	def __init__(self, filename, seek=0, loop=False):
-		self.command = ["ffplay","-nodisp","-hide_banner","-flags","low_delay","-loop",("0" if loop else "1"),"-ss",str(seek),filename]
+		self.command = [shutil.which("ffplay"),"-nodisp","-hide_banner","-flags","low_delay","-loop",("0" if loop else "1"),"-ss","%.2f" % max(0, seek),filename]
 		self.mproc = Popen(self.command, stdout=DEVNULL, stderr=DEVNULL, stdin=DEVNULL)
 
 	def stop(self):

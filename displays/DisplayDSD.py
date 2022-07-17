@@ -174,7 +174,7 @@ class DisplayDSD(Display):
 		try:
 			packet = b'\x08DATS' + length.to_bytes(2,'big') + b'\x00\x00'
 			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(packet)))
-			#await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK
+			await asyncio.sleep(0.01) # Hack because I cba to wait for DATSOK
 		except BleakError as e:
 			await self._disconnect_errored(e)
 
@@ -184,9 +184,9 @@ class DisplayDSD(Display):
 		try:
 			if not USE_HAX:
 				await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05DATCP')))
-				#await asyncio.sleep(0.01) # Hack because I cba to wait for DATCPOK
+				await asyncio.sleep(0.01) # Hack because I cba to wait for DATCPOK
 			await self.client.write_gatt_char(CHAR_CMD, encrypt(pad(b'\x05MODE\x01')), response=wait_response)
-			#await asyncio.sleep(0.005)
+			await asyncio.sleep(0.005)
 		except BleakError as e:
 			await self._disconnect_errored(e)
 
@@ -197,6 +197,7 @@ class DisplayDSD(Display):
 		try:
 			packet = write_amount.to_bytes(1,'big') + data[:write_amount]
 			await self.client.write_gatt_char(CHAR_DAT, encrypt(pad(packet)))
+			await asyncio.sleep(0.01)
 		except BleakError as e:
 			await self._disconnect_errored(e)
 		return write_amount

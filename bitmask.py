@@ -2,11 +2,12 @@ import asyncio,math,sys,os,time,ledmask,displays,kgfx
 
 USE_CLASSES=[
 	displays.DisplayDSD,
-	displays.DisplayVirtualDSD
+	#displays.DisplayVirtualDSD
 ]
 
 USE_ADDRESSES=[
-	#"00:2A:EC:00:A0:D6",
+	"00:2A:EC:00:A0:D6", # ksk
+	"00:2A:00:00:A9:F4", # stg7
 ]
 
 from effects.demofx import ClearBuffer,GenshikenLogo,FadeDither,FadeScanlines,\
