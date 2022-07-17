@@ -51,10 +51,10 @@ class Scene:
 			self.layers[name_layer].cleanup()
 		self.layers.clear()
 
-	def play_music(self, filename, seek, loop):
+	def play_music(self, filename, seek):
 		if self.music:
 			self.music.stop()
-		self.music = Music(filename, seek, loop)
+		self.music = Music(filename, seek)
 
 	def stop_music(self):
 		if self.music:
@@ -90,14 +90,18 @@ class Effect:
 from subprocess import Popen, PIPE, DEVNULL
 import shutil
 class Music:
-	def __init__(self, filename, seek=0, loop=False):
-		self.command = [shutil.which("ffplay"),"-nodisp","-hide_banner","-flags","low_delay","-loop",("0" if loop else "1"),"-ss","%.2f" % max(0, seek),filename]
-		self.mproc = Popen(self.command, stdout=DEVNULL, stderr=DEVNULL, stdin=DEVNULL)
+	def __init__(self, filename, seek=0):
+		self.rproc = Popen([shutil.which("ffmpeg"),"-i",filename,"-f","wav","-ss","%.2f"%max(0,seek),"-"], stdout=PIPE, stderr=DEVNULL, stdin=DEVNULL)
+		self.oproc = Popen([shutil.which("ffplay"),"-nodisp","-"], stdout=DEVNULL, stderr=DEVNULL, stdin=self.rproc.stdout)
 
 	def stop(self):
-		if self.mproc:
-			self.mproc.terminate()
-			self.mproc = None
+		if self.rproc:
+			self.rproc.terminate()
+			self.rproc = None
+		if self.oproc:
+			self.oproc.terminate()
+			self.oproc = None
+
 
 import shlex
 class SceneAnimator:
@@ -160,10 +164,6 @@ class SceneAnimator:
 			self.story_file.close()
 
 	def _parse_time(self, s):
-		# seconds or minutes:seconds
-		# beats/bpm or bars:beats,bpm (4 beats per bar)
-		# bars:beats/bpm/n (n beats per bar)
-		# minutes and bars must be integers, seconds and beats can have decimals.
 		parts = s.split("/")
 		if len(parts) == 0:
 			return 0
@@ -222,7 +222,7 @@ class SceneAnimator:
 			seek = 0
 			if len(tokens) > 0:
 				seek = self._parse_time(tokens.pop(0))
-			self.scene.play_music(musfile, seek+process_time-at_time, False)
+			self.scene.play_music(musfile, seek+process_time-at_time)
 		elif command == "stopmus":
 			self.scene.stop_music()
 		elif command == "clreffects":

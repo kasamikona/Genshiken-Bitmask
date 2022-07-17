@@ -10,7 +10,7 @@ addlayer nothing 48 12
 draw nothing clear
 
 at 0
-playmus bitmask.mp3 0 # 138.69 BPM
+playmus bitmask.nsf 0 # 138.69 BPM
 addeffect genshiken GenshikenLogo $bgspeed=0
 addeffect fdither FadeDither
 loop
