@@ -64,6 +64,9 @@ async def run():
 
 if __name__=="__main__":
 	os.system('')
+	abspath = os.path.abspath(__file__)
+	dname = os.path.dirname(abspath)
+	os.chdir(dname)
 	loop=asyncio.new_event_loop()
 	try:
 		loop.run_until_complete(run())

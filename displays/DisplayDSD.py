@@ -4,6 +4,7 @@ from Crypto.Cipher import AES
 from bleak import BleakScanner, BleakClient
 from bleak.exc import BleakError
 
+FIX_GLITCHES = True
 USE_HAX = True
 GET_RESPONSES = False
 
@@ -197,7 +198,8 @@ class DisplayDSD(Display):
 		try:
 			packet = write_amount.to_bytes(1,'big') + data[:write_amount]
 			await self.client.write_gatt_char(CHAR_DAT, encrypt(pad(packet)))
-			await asyncio.sleep(0.01)
+			if FIX_GLITCHES:
+				await asyncio.sleep(0.005)
 		except BleakError as e:
 			await self._disconnect_errored(e)
 		return write_amount
