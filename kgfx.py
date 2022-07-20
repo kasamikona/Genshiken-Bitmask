@@ -137,7 +137,7 @@ class SceneAnimator:
 			if t < 0 or self.time_waiting < 0:
 				return True
 			if self.time_stdout > 0 and (t//self.time_stdout) > (self.last_update//self.time_stdout):
-				print("t = %d" % int(t))
+				print("%d" % int(t))
 			self.last_update = t
 			while t >= self.time_waiting:
 				if not self._process_next(self.time_waiting, t):

@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 import asyncio,math,sys,os,time,ledmask,displays,kgfx
 
 USE_CLASSES=[
 	displays.DisplayDSD,
-	#displays.DisplayVirtualDSD
+	displays.DisplayVirtualDSD
 ]
 
 USE_ADDRESSES=[

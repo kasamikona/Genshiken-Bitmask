@@ -1,10 +1,9 @@
 import os,time,math,asyncio
-from subprocess import Popen, PIPE, DEVNULL
+from subprocess import Popen,PIPE,DEVNULL
 from .Display import Display
 
-USE_HAX = True
-SCALE = 10
-SHOWDOTS = True
+BIGGER  =False
+SHOWDOTS=True
 
 class DisplayVirtualDSD(Display):
 	def __init__(self, title="Virtual Display Output"):
@@ -14,16 +13,16 @@ class DisplayVirtualDSD(Display):
 		self.color = False
 		self.bit_depth = 1
 		self.buffer = [[0]*self.height for x in range(self.width)]
-		self.max_fps = 10 if USE_HAX else 7.5 # Measured up to 10.5 fps with hax, 8.0 without
-		vfilt = "scale=480x120:flags=neighbor"
+		self.max_fps = 10
+		vfilt = "scale=%s:flags=neighbor"%("960x240"if BIGGER else"480x120")
 		if SHOWDOTS:
-			vfilt = "scale=485x125,curves=all='0/0 .1/.2 .8/1',split[a][b];[b]boxblur=6,format=gbrp[b];[b][a]blend=all_mode=screen:shortest=1"
-		vsize = "97x25" if SHOWDOTS else "48x12"
-		command = ["ffmpeg","-loglevel","fatal","-hide_banner","-f","rawvideo","-pix_fmt","gray",
+			vfilt="scale=%s,curves=all='0/0 .1/.2 .8/1',split[a][b];[b]boxblur=%d,format=gbrp[b];[b][a]blend=all_mode=screen:shortest=1"%(("970x250",8)if BIGGER else("485x125",4))
+		vsize="97x25"if SHOWDOTS else"48x12"
+		command=["ffmpeg","-loglevel","fatal","-hide_banner","-f","rawvideo","-pix_fmt","gray",
 			"-s",vsize,"-framerate","30","-re","-i","-","-vf",vfilt,"-pix_fmt","rgb24","-f","sdl",title]
-		self.ffprocess = Popen(command, stdout=DEVNULL, stderr=DEVNULL, stdin=PIPE, bufsize=(485 if SHOWDOTS else 288))
+		self.ffprocess=Popen(command,stdout=DEVNULL,stderr=DEVNULL,stdin=PIPE,bufsize=(485 if SHOWDOTS else 288))
 		print("Connected to virtual DSD display")
-		self.is_connected = True
+		self.is_connected=True
 
 	@classmethod
 	async def connect(cls, addresses=None, dispargs=None):
@@ -65,7 +64,7 @@ class DisplayVirtualDSD(Display):
 		self.ffprocess.stdin.write(bytes(bytes_out))
 
 		tb = time.time()
-		waitfps = 10 if wait_response else 10.5
+		waitfps = 11
 		twait = (1/waitfps) - (tb-ta)
 		if twait > 0:
 			await asyncio.sleep(twait)

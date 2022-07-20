@@ -389,7 +389,7 @@ class Metaballs(kgfx.Effect):
 				c["vx"]=abs(c["vx"])
 				c["x"]=min(0-c["x"],47)
 			
-			if c["x"]>47:
+			if c["x"]>=48:
 				c["vx"]=-abs(c["vx"])
 				c["x"]=max(96-c["x"],0)
 			
@@ -397,7 +397,7 @@ class Metaballs(kgfx.Effect):
 				c["vy"]=abs(c["vy"])
 				c["y"]=min(0-c["y"],11)
 			
-			if c["y"]>11:
+			if c["y"]>=12:
 				c["vy"]=-abs(c["vy"])
 				c["y"]=max(24-c["y"],0)
 		for x in range(48):
