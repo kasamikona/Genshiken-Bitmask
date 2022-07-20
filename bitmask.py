@@ -58,7 +58,13 @@ async def cleanup():
 
 async def run():
 	global display
-	display=await ledmask.find_and_connect(classes=USE_CLASSES,dispargs={"title":"Bitmask  :  Genshiken 2022  :  Virtual Display Mode"})
+	classes = USE_CLASSES[:]
+	addresses = USE_ADDRESSES[:]
+	if 'HWONLY' in os.environ:
+		classes = [displays.DisplayDSD]
+	if 'ADDRESS' in os.environ:
+		addresses = [os.environ['ADDRESS'].split(",")]
+	display=await ledmask.find_and_connect(classes=classes,addresses=addresses,dispargs={"title":"Bitmask  :  Genshiken 2022  :  Virtual Display Mode"})
 	if not display:
 		return
 	await rundemo()
