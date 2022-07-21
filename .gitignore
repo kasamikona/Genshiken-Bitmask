@@ -1,9 +1,6 @@
 # Custom
 *.mp4
 
-# Licensing, auto download later
-tools/forcecrc32.py
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
